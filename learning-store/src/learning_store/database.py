@@ -31,6 +31,7 @@ class DatabaseConnection:
         if not PYODBC_AVAILABLE:
             return False
         try:
+            import pyodbc
             self._connection = pyodbc.connect(db_config.connection_string)
             return True
         except Exception as e:
@@ -56,11 +57,11 @@ class DatabaseConnection:
     def query(self, sql: str, params: tuple = ()) -> pd.DataFrame:
         """Execute a query and return results as DataFrame."""
         self.ensure_connected()
-        if not self.is_connected:
+        if not self.is_connected or self._connection is None:
             return pd.DataFrame()
         
         try:
-            return pd.read_sql(sql, self._connection, params=params)
+            return pd.read_sql(sql, self._connection, params=params)  # type: ignore[arg-type]
         except Exception as e:
             print(f"Query failed: {e}")
             return pd.DataFrame()
@@ -68,7 +69,7 @@ class DatabaseConnection:
     def execute(self, sql: str, params: tuple = ()) -> bool:
         """Execute a non-query SQL statement."""
         self.ensure_connected()
-        if not self.is_connected:
+        if not self.is_connected or self._connection is None:
             return False
         
         try:
@@ -83,7 +84,7 @@ class DatabaseConnection:
     def execute_scalar(self, sql: str, params: tuple = ()) -> Any:
         """Execute a query and return single value."""
         self.ensure_connected()
-        if not self.is_connected:
+        if not self.is_connected or self._connection is None:
             return None
         
         try:
@@ -127,6 +128,10 @@ def save_pattern(pattern: Pattern) -> Optional[int]:
     conditions_json = json.dumps(pattern.conditions)
     regime_str = pattern.regime.value if pattern.regime else None
     
+    if db._connection is None:
+        print("Database connection is None")
+        return 0
+    
     try:
         cursor = db._connection.cursor()
         cursor.execute(sql, (
@@ -142,7 +147,11 @@ def save_pattern(pattern: Pattern) -> Optional[int]:
             regime_str,
             pattern.is_active
         ))
-        pattern_id = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        if result is not None:
+            pattern_id = result[0]
+        else:
+            pattern_id = 0
         db._connection.commit()
         return pattern_id
     except Exception as e:
@@ -251,6 +260,10 @@ def save_learning(learning: Learning) -> Optional[int]:
     
     metadata_json = json.dumps(learning.metadata)
     
+    if db._connection is None:
+        print("Database connection is None")
+        return 0
+    
     try:
         cursor = db._connection.cursor()
         cursor.execute(sql, (
@@ -264,7 +277,11 @@ def save_learning(learning: Learning) -> Optional[int]:
             learning.related_trade_id,
             metadata_json
         ))
-        learning_id = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        if result is not None:
+            learning_id = result[0]
+        else:
+            learning_id = 0
         db._connection.commit()
         return learning_id
     except Exception as e:
@@ -288,7 +305,7 @@ def get_learnings(
         FROM dbo.LearningStore
         WHERE Timestamp >= DATEADD(day, -?, GETDATE())
     """
-    params = [days]
+    params: list[int | str] = [days]
     
     if learning_type:
         sql += " AND LearningType = ?"
@@ -335,6 +352,10 @@ def save_recommendation(rec: Recommendation) -> Optional[int]:
     patterns_json = json.dumps(rec.supporting_patterns)
     regime_str = rec.regime.value if rec.regime else None
     
+    if db._connection is None:
+        print("Database connection is None")
+        return None
+    
     try:
         cursor = db._connection.cursor()
         cursor.execute(sql, (
@@ -348,7 +369,11 @@ def save_recommendation(rec: Recommendation) -> Optional[int]:
             regime_str,
             rec.valid_until
         ))
-        rec_id = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        if result is not None:
+            rec_id = result[0]
+        else:
+            rec_id = None
         db._connection.commit()
         return rec_id
     except Exception as e:
@@ -373,11 +398,15 @@ def get_active_recommendations(
           AND (ValidUntil IS NULL OR ValidUntil > GETDATE())
           AND Confidence >= ?
     """
-    params = [min_confidence]
+    params: list[float | str] = [min_confidence]
     
     if parameter_name:
         sql += " AND ParameterName = ?"
         params.append(parameter_name)
+    
+    if regime:
+        sql += " AND Regime = ?"
+        params.append(regime.value)
     
     if regime:
         sql += " AND (Regime = ? OR Regime IS NULL)"
@@ -520,6 +549,10 @@ def update_parameter_performance(perf: ParameterPerformance) -> bool:
     """
     
     regime_str = perf.regime.value if perf.regime else None
+    
+    if db._connection is None:
+        print("Database connection is None")
+        return False
     
     cursor = db._connection.cursor()
     cursor.execute(sql_update, (

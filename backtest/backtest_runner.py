@@ -65,7 +65,7 @@ class BacktestRunner:
     4. Trade-Mind MCP → Query SQL for get_last_trades, calculate_win_rate, etc.
     """
     
-    def __init__(self, connection_string: str = None):
+    def __init__(self, connection_string: str | None = None):
         self.base_path = Path(__file__).parent.parent
         self.lean_path = self.base_path / "quantconnect-lean"
         self.results_path = self.base_path / "backtest" / "results"

@@ -27,7 +27,7 @@ def render_metric_card(
         label=label,
         value=value,
         delta=delta,
-        delta_color=delta_color,
+        delta_color=delta_color,  # type: ignore[arg-type]
         help=help_text
     )
 

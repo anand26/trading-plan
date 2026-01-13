@@ -57,7 +57,7 @@ class LeanConfig:
     results_path: Path = field(
         default_factory=lambda: Path(os.getenv("LEAN_RESULTS_PATH", "./results")).resolve()
     )
-    algorithm_path: Path = field(default=None)
+    algorithm_path: Path | None = field(default=None)
     
     def __post_init__(self):
         if self.algorithm_path is None:
@@ -115,7 +115,7 @@ class SafetyConfig:
 class Config:
     """Master configuration container."""
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
-    lean: LeanConfig = field(default_factory=LeanConfig)
+    lean: LeanConfig = field(default_factory=lambda: LeanConfig())
     alpaca: AlpacaConfig = field(default_factory=AlpacaConfig)
     safety: SafetyConfig = field(default_factory=SafetyConfig)
 

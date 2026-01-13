@@ -248,7 +248,7 @@ class AdaptiveLearner:
             # Update statistics
             pattern.sample_size += len(matching_trades)
             pattern.win_rate = (pattern.win_rate + new_win_rate) / 2  # Moving average
-            pattern.avg_pnl = (pattern.avg_pnl + new_avg_pnl) / 2
+            pattern.avg_pnl = float((pattern.avg_pnl + new_avg_pnl) / 2)
             
             update_pattern(pattern)
     

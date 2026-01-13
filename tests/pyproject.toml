@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "trading-system-tests"
 version = "0.1.0"
@@ -17,6 +21,10 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fixtures*"]
 
 [project.optional-dependencies]
 dev = [

@@ -98,7 +98,7 @@ class PatternRecognizer:
                     confidence=min(0.9, 0.5 + (len(trades) / 100)),
                     sample_size=len(trades),
                     win_rate=win_rate,
-                    avg_pnl=avg_pnl
+                    avg_pnl=float(avg_pnl)
                 )
                 
                 # Save or update pattern
@@ -106,7 +106,7 @@ class PatternRecognizer:
                 if existing:
                     existing.sample_size = len(trades)
                     existing.win_rate = win_rate
-                    existing.avg_pnl = avg_pnl
+                    existing.avg_pnl = float(avg_pnl)
                     existing.confidence = pattern.confidence
                     update_pattern(existing)
                     patterns.append(existing)
@@ -143,14 +143,14 @@ class PatternRecognizer:
                     confidence=min(0.9, 0.5 + (len(trades) / 100)),
                     sample_size=len(trades),
                     win_rate=win_rate,
-                    avg_pnl=avg_pnl
+                    avg_pnl=float(avg_pnl)
                 )
                 
                 existing = self._find_similar_pattern(pattern)
                 if existing:
                     existing.sample_size = len(trades)
                     existing.win_rate = win_rate
-                    existing.avg_pnl = avg_pnl
+                    existing.avg_pnl = float(avg_pnl)
                     update_pattern(existing)
                     patterns.append(existing)
                 else:
@@ -196,7 +196,7 @@ class PatternRecognizer:
                         confidence=min(0.9, 0.5 + (len(symbol_trades) / 100)),
                         sample_size=len(symbol_trades),
                         win_rate=win_rate,
-                        avg_pnl=avg_pnl,
+                        avg_pnl=float(avg_pnl),
                         regime=regime
                     )
                     
@@ -204,7 +204,7 @@ class PatternRecognizer:
                     if existing:
                         existing.sample_size = len(symbol_trades)
                         existing.win_rate = win_rate
-                        existing.avg_pnl = avg_pnl
+                        existing.avg_pnl = float(avg_pnl)
                         update_pattern(existing)
                         patterns.append(existing)
                     else:
@@ -251,14 +251,14 @@ class PatternRecognizer:
                 confidence=min(0.9, 0.5 + (len(bucket_trades) / 100)),
                 sample_size=len(bucket_trades),
                 win_rate=win_rate,
-                avg_pnl=avg_pnl
+                avg_pnl=float(avg_pnl)
             )
             
             existing = self._find_similar_pattern(pattern)
             if existing:
                 existing.sample_size = len(bucket_trades)
                 existing.win_rate = win_rate
-                existing.avg_pnl = avg_pnl
+                existing.avg_pnl = float(avg_pnl)
                 update_pattern(existing)
                 patterns.append(existing)
             else:
