@@ -1,0 +1,219 @@
+@startuml QuantConnect_TQQQ_System_Architecture
+
+title TQQQ/SQQQ Adaptive Trading System - Dual MCP Architecture
+!theme blueprint
+
+' ========================================
+' AI AGENT LAYER
+' ========================================
+package "AI Agent Layer" #E3F2FD {
+  actor "Claude/LLM\n(AI Agent)" as Agent
+  note right of Agent
+    "Time the Market, or Market the Time"
+    - Acts on quantifiable data only
+    - Learns from repetitive backtests
+    - Self-corrects through iterations
+    - Maintains objectivity
+  end note
+}
+
+' ========================================
+' MCP SERVER LAYER
+' ========================================
+package "MCP Server Layer" #FFF8E1 {
+  
+  package "LEAN-Ops MCP\n(Algorithm Operations)" #FFECB3 {
+    component "run_backtest" as run_bt
+    component "get_backtest_results" as get_bt
+    component "update_parameters" as upd_params
+    component "deploy_paper" as deploy
+    component "stop_algorithm" as stop_algo
+    component "get_algorithm_status" as get_status
+  }
+  
+  package "Trade-Mind MCP\n(Analytics & Learning)" #FFE0B2 {
+    component "get_last_trades" as get_trades
+    component "calculate_win_rate" as calc_wr
+    component "get_daily_pnl" as get_pnl
+    component "detect_market_regime" as detect_regime
+    component "suggest_corrections" as suggest_corr
+    component "get_optimal_params" as get_optimal
+  }
+}
+
+' ========================================
+' QUANTCONNECT LEAN ENGINE
+' ========================================
+package "QuantConnect LEAN Engine" #E1F5FE {
+  
+  component "Engine" as Engine
+  component "QCAlgorithm" as QCAlgo
+  component "DataFeed" as DataFeed
+  component "BacktestingEngine" as Backtest
+  component "TransactionManager" as TxnMgr
+  component "Portfolio" as Portfolio
+  component "AlpacaBrokerage" as AlpacaBrok
+  component "Indicators\n(RSI, VWAP, BB)" as Indicators
+  component "Scheduler" as Scheduler
+  component "ResultsHandler" as Results
+  
+  Engine --> QCAlgo
+  Engine --> Backtest
+  QCAlgo --> DataFeed
+  QCAlgo --> TxnMgr
+  QCAlgo --> Portfolio
+  QCAlgo --> Indicators
+  QCAlgo --> Scheduler
+  Backtest --> DataFeed
+  Backtest --> Results
+  TxnMgr --> AlpacaBrok
+}
+
+' ========================================
+' CUSTOM EXTENSIONS
+' ========================================
+package "Custom Extensions" #FFF9C4 {
+  
+  component "TQQQScalpingAlgorithm" as Strategy
+  component "PositionTracker\n(Pyramiding)" as PyramidTracker
+  component "SQLConnector" as SQLConn
+  
+  Strategy --|> QCAlgo
+  Strategy --> PyramidTracker
+  Strategy --> SQLConn
+}
+
+' ========================================
+' DATA LAYER
+' ========================================
+database "SQL Server" as SQLServer #E8F5E9 {
+  folder "Trading Data" {
+    [Orders]
+    [Trades]
+    [DailyPerformance]
+    [PositionEntries]
+    [Signals]
+    [AccountSnapshots]
+  }
+  folder "Learning Store" {
+    [BacktestOutcomes]
+    [ParameterCorrelations]
+    [MarketRegimes]
+    [CorrectionHistory]
+  }
+  folder "Configuration" {
+    [StrategyParameters]
+  }
+}
+
+' ========================================
+' EXTERNAL SERVICES
+' ========================================
+package "External Services" #F3E5F5 {
+  component "Streamlit Dashboard" as Dashboard
+}
+
+cloud "Alpaca API" as Alpaca #FFE4E1
+storage "Historical Data" as HistData #E8F5E9
+
+' ========================================
+' CONNECTIONS - AI Agent to MCP
+' ========================================
+Agent --> run_bt : "Execute backtest"
+Agent --> get_bt : "Get results"
+Agent --> upd_params : "Update params"
+Agent --> deploy : "Deploy strategy"
+Agent --> stop_algo : "Emergency stop"
+Agent --> get_status : "Check status"
+
+Agent --> get_trades : "Query trades"
+Agent --> calc_wr : "Get statistics"
+Agent --> get_pnl : "P&L breakdown"
+Agent --> detect_regime : "Market regime?"
+Agent --> suggest_corr : "Suggest improvements"
+Agent --> get_optimal : "Best params?"
+
+' ========================================
+' CONNECTIONS - MCP to Backend
+' ========================================
+run_bt --> Engine : "Trigger backtest"
+get_bt --> Results : "Read results"
+upd_params --> SQLServer : "Update params"
+deploy --> Engine : "Start live"
+stop_algo --> TxnMgr : "Liquidate"
+get_status --> Portfolio : "Read state"
+
+get_trades --> SQLServer : "Query trades"
+calc_wr --> SQLServer : "Calculate stats"
+get_pnl --> SQLServer : "Query daily"
+detect_regime --> SQLServer : "Analyze history"
+suggest_corr --> SQLServer : "Pattern matching"
+get_optimal --> SQLServer : "Query learning store"
+
+' ========================================
+' CONNECTIONS - Engine to External
+' ========================================
+AlpacaBrok --> Alpaca : "Live orders"
+DataFeed --> Alpaca : "Live stream"
+DataFeed --> HistData : "Backtest data"
+Results --> SQLServer : "Backtest results"
+SQLConn --> SQLServer : "Live trades"
+
+' ========================================
+' CONNECTIONS - Dashboard
+' ========================================
+Dashboard --> SQLServer : "Read all data"
+Dashboard ..> upd_params : "Update via MCP"
+
+' ========================================
+' NOTES
+' ========================================
+note bottom of SQLServer
+  **Central Hub**
+  - LEAN writes trades
+  - Trade-Mind reads analytics
+  - Learning Store tracks patterns
+  - Dashboard shows UI
+  - Params hot-reloaded
+end note
+
+note right of Backtest
+  **Backtesting Loop**
+  1. Load historical data
+  2. Simulate time progression
+  3. Execute strategy on each bar
+  4. Record to SQL
+  5. Feed to Learning Store
+  6. Generate performance metrics
+end note
+
+note left of suggest_corr
+  **Self-Correction Logic**
+  1. Analyze current performance
+  2. Query historical patterns
+  3. Compare to successful runs
+  4. Generate data-backed suggestions
+  5. Apply via LEAN-Ops MCP
+  6. Record correction outcomes
+end note
+
+' ========================================
+' LEGEND
+' ========================================
+legend right
+  |= Color |= Component |
+  | #E3F2FD | AI Agent Layer |
+  | #FFF8E1 | MCP Servers |
+  | #E1F5FE | QuantConnect LEAN |
+  | #FFF9C4 | Custom Extensions |
+  | #E8F5E9 | Data Storage |
+  | #F3E5F5 | External Services |
+  
+  **MCP Servers:**
+  • **LEAN-Ops**: Algorithm operations
+  • **Trade-Mind**: Analytics & learning
+  
+  **Effort: ~4 weeks**
+end legend
+
+@enduml

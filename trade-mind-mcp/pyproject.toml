@@ -1,0 +1,47 @@
+[project]
+name = "trade-mind-mcp"
+version = "1.0.0"
+description = "MCP Server for Trading Analytics and Adaptive Learning"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Trading System", email = "trading@example.com" }
+]
+keywords = ["mcp", "trading", "analytics", "machine-learning", "adaptive"]
+license = { text = "MIT" }
+
+dependencies = [
+    "mcp>=1.0.0",
+    "pyodbc>=5.0.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "mypy>=1.5.0",
+]
+
+[project.scripts]
+trade-mind-mcp = "trade_mind_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trade_mind_mcp"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true

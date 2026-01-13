@@ -1,0 +1,47 @@
+{
+  "// TQQQ Scalping Strategy - Backtest Configuration": "",
+  "// This config overrides Launcher/config.json for our strategy": "",
+  
+  "environment": "backtesting",
+  
+  "// Algorithm Settings": "",
+  "algorithm-type-name": "TQQQScalpingAlgorithm",
+  "algorithm-language": "Python",
+  "algorithm-location": "../Algorithm.Python/TQQQScalpingAlgorithm.py",
+  
+  "// Data Settings": "",
+  "data-folder": "../Data/",
+  
+  "// Backtest Date Range": "",
+  "// Note: Adjust these based on available data": "",
+  "parameters": {
+    "start-date": "2024-01-01",
+    "end-date": "2024-12-31",
+    "cash": "100000"
+  },
+  
+  "// Results Output - Trade-Mind MCP Integration Point": "",
+  "// These files will be parsed and stored in SQL for MCP queries": "",
+  "results-destination-folder": "../../backtest/results",
+  "transaction-log": "../../backtest/results/transactions.csv",
+  
+  "// Logging": "",
+  "log-handler": "QuantConnect.Logging.CompositeLogHandler",
+  "debug-mode": false,
+  
+  "// Performance Settings": "",
+  "maximum-data-points-per-chart-series": 100000,
+  "maximum-chart-series": 10,
+  
+  "// Trading Hours": "",
+  "force-exchange-always-open": false,
+  
+  "// Handlers (Backtesting)": "",
+  "live-mode": false,
+  "setup-handler": "QuantConnect.Lean.Engine.Setup.BacktestingSetupHandler",
+  "result-handler": "QuantConnect.Lean.Engine.Results.BacktestingResultHandler",
+  "data-feed-handler": "QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed",
+  "real-time-handler": "QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler",
+  "history-provider": ["QuantConnect.Lean.Engine.HistoricalData.SubscriptionDataReaderHistoryProvider"],
+  "transaction-handler": "QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler"
+}
