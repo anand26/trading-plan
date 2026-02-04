@@ -53,13 +53,6 @@ Write-Info "============================================"
 Write-Info "Git Workflow Tool"
 Write-Info "============================================"
 
-# If no feature name provided and not explicitly creating feature branch, use check-in mode
-if ([string]::IsNullOrWhiteSpace($FeatureName) -and -not $CheckinOnly) {
-    $CheckinOnly = $true
-    Write-Info "No feature name provided - defaulting to check-in mode"
-    Write-Info "(Use -FeatureName 'name' to create a feature branch)"
-}
-
 # CODE CHECK-IN ONLY MODE - No feature branch
 if ($CheckinOnly) {
     Write-Info "`nCode Check-in Mode (current branch)"
@@ -162,12 +155,10 @@ if ($status) {
 
 # Generate feature branch name
 if ([string]::IsNullOrWhiteSpace($FeatureName)) {
-    # This should not happen now since we default to check-in mode above
-    # But keeping as fallback
-    Write-Error-Custom "Feature name is required for feature branch mode"
-    Write-Info "Use: .\create_feature_branch.ps1 -FeatureName 'your-feature-name'"
-    Write-Info "Or use: .\create_feature_branch.ps1 (for simple check-in)"
-    exit 1
+    # Auto-generate from timestamp
+    $timestamp = Get-Date -Format "yyyy-MM-dd_HHmm"
+    $FeatureName = "feature/$timestamp-update"
+    Write-Info "No feature name provided. Using auto-generated name: $FeatureName"
 } else {
     # Sanitize feature name
     $FeatureName = $FeatureName.ToLower() -replace '[^a-z0-9\-_]', '-'
