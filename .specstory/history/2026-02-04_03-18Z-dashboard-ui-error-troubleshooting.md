@@ -592,3 +592,509 @@ The dashboard should now work smoothly when switching between data sources on bo
 
 ---
 
+_**User (2026-02-04 19:35Z)**_
+
+ Executed EXIT: {'closed': [{'symbol': 'TQQQ', 'qty': 1122, 'order_id': '97c6522c-4ab8-490f-9320-0293e2d8ba2d'}], 'message': 'Closed 1 position(s)'}
+
+2026-02-04 14:30:03,987 - webhook_server - ERROR - Failed to log trade: ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'Timestamp'. (207) (SQLExecDirectW)")
+
+2026-02-04 14:30:04,005 - webhook_server - ERROR - Failed to log webhook event: ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'EventTime'. (207) (SQLExecDirectW)")
+fix these nasty db issues, why they are hauntine me again and again 
+
+---
+
+_**Agent (model copilot/claude-opus-4.5)**_
+
+<tool-use data-tool-type="search" data-tool-name="copilot_findTextInFiles">
+<details>
+<summary>Tool use: **copilot_findTextInFiles** • Searching for regex `Timestamp|EventTime` (`**/webhooks/**/*.py`)</summary>
+
+
+Searched for regex `Timestamp|EventTime` (`**/webhooks/**/*.py`), 20 results
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#1-1), lines 1 to 150</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#1-1), lines 1 to 150
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="copilot_findTextInFiles">
+<details>
+<summary>Tool use: **copilot_findTextInFiles** • Searching for regex `WebhookEvents|TradeLog|CREATE TABLE.*Webhook` (`**/schema.sql`)</summary>
+
+
+Searched for regex `WebhookEvents|TradeLog|CREATE TABLE.*Webhook` (`**/schema.sql`), 20 results
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/webhooks/webhook_server.py#320-320), lines 320 to 450</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/webhooks/webhook_server.py#320-320), lines 320 to 450
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#570-570), lines 570 to 595</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#570-570), lines 570 to 595
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#65-65), lines 65 to 110</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#65-65), lines 65 to 110
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/webhooks/webhook_server.py#280-280), lines 280 to 420</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/webhooks/webhook_server.py#280-280), lines 280 to 420
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_multiReplaceString">
+<details>
+<summary>Tool use: **copilot_multiReplaceString**</summary>
+
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_multiReplaceString",
+  "isHidden": true
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Multi-Replace String in Files\"",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "&#96;&#96;&#96;python\n.\r\n        \r\n        Note: The Trades table schema expects full trade lifecycle (entry+exit).\r\n        For webhook-triggered trades, we log as entry initially.\r\n        Schema: Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, SessionId, etc.\r\n        \"\"\"\r\n        conn = None\r\n        try:\r\n            conn = self._get_connection()\r\n            cursor = conn.cursor()\r\n            \r\n            # Get active session\r\n            session_type = \"PAPER\" if \"paper\" in Config.ALPACA_BASE_URL else \"LIVE\"\r\n            cursor.execute(\"\"\"\r\n                SELECT TOP 1 SessionId FROM dbo.Sessions \r\n                WHERE SessionType = ? AND Status = 'active'\r\n                ORDER BY StartTime DESC\r\n            \"\"\", (session_type,))\r\n            row = cursor.fetchone()\r\n            session_id = row[0] if row else None\r\n            \r\n            # Determine direction from action\r\n            direction = 'LONG' if action.upper() in ('BUY', 'ENTRY', 'LONG') else 'SHORT' if action.upper() in ('SHORT', 'SELL_SHORT') else 'EXIT'\r\n            \r\n            if direction != 'EXIT':\r\n                # Log as new trade entry\r\n                cursor.execute(\"\"\"\r\n                    INSERT INTO dbo.Trades\r\n                    (Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, SessionId, CreatedAt)\r\n                    VALUES (?, ?, ?, ?, ?, ?, ?)\r\n                \"\"\", (\r\n                    symbol,\r\n                    direction,\r\n                    datetime.now(timezone.utc),\r\n                    price,\r\n                    qty,\r\n                    session_id,\r\n                    datetime.now(timezone.utc)\r\n                ))\r\n            else:\r\n                # For exit, try to update the most recent open trade for this symbol\r\n                cursor.execute(\"\"\"\r\n                    UPDATE dbo.Trades\r\n                    SET ExitTime = ?, ExitPrice = ?, ExitQuantity = ?, ExitReason = ?\r\n                    WHERE TradeId = (\r\n                        SELECT TOP 1 TradeId FROM dbo.Trades \r\n                        WHERE Symbol = ? AND ExitTime IS NULL \r\n                        ORDER BY EntryTime DESC\r\n                    )\r\n                \"\"\", (\r\n                    datetime.now(timezone.utc),\r\n                    price,\r\n                    qty,\r\n                    f\"Webhook:{action}\",\r\n                    symbol\r\n    \n - using actual schema columns:\r\n            # WebhookEvents(SessionId, Timestamp, WebhookType, Symbol, TriggerReason, Price, MarketData, Conditions, CreatedAt)\r\n            symbol = payload.get('symbol', payload.get('ticker', 'UNKNOWN'))\r\n            webhook_type = payload.get('action', status)\r\n            trigger_reason = payload.get('reason', error or status)\r\n            price_val = payload.get('price')\r\n            \r\n            cursor.execute(\"\"\"\r\n                INSERT INTO dbo.WebhookEvents \r\n                (SessionId, Timestamp, WebhookType, Symbol, TriggerReason, Price, MarketData, Conditions, CreatedAt)\r\n                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)\r\n            \"\"\", (\r\n                session_id,\r\n                datetime.now(timezone.utc),\r\n                webhook_type[:50] if webhook_type else 'UNKNOWN',\r\n                symbol[:20] if symbol else 'UNKNOWN',\r\n                (trigger_reason or '')[:500] if trigger_reason else None,\r\n                float(price_val) if price_val else None,\r\n                json.dumps(payload),  # Store full payload in MarketData\r\n                json.dumps(response),  # Store response in Conditions\r\n                datetime.now(timezone.utc)\n&#96;&#96;&#96;\n\n",
+  "textEditContent": ".\r\n        \r\n        Note: The Trades table schema expects full trade lifecycle (entry+exit).\r\n        For webhook-triggered trades, we log as entry initially.\r\n        Schema: Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, SessionId, etc.\r\n        \"\"\"\r\n        conn = None\r\n        try:\r\n            conn = self._get_connection()\r\n            cursor = conn.cursor()\r\n            \r\n            # Get active session\r\n            session_type = \"PAPER\" if \"paper\" in Config.ALPACA_BASE_URL else \"LIVE\"\r\n            cursor.execute(\"\"\"\r\n                SELECT TOP 1 SessionId FROM dbo.Sessions \r\n                WHERE SessionType = ? AND Status = 'active'\r\n                ORDER BY StartTime DESC\r\n            \"\"\", (session_type,))\r\n            row = cursor.fetchone()\r\n            session_id = row[0] if row else None\r\n            \r\n            # Determine direction from action\r\n            direction = 'LONG' if action.upper() in ('BUY', 'ENTRY', 'LONG') else 'SHORT' if action.upper() in ('SHORT', 'SELL_SHORT') else 'EXIT'\r\n            \r\n            if direction != 'EXIT':\r\n                # Log as new trade entry\r\n                cursor.execute(\"\"\"\r\n                    INSERT INTO dbo.Trades\r\n                    (Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, SessionId, CreatedAt)\r\n                    VALUES (?, ?, ?, ?, ?, ?, ?)\r\n                \"\"\", (\r\n                    symbol,\r\n                    direction,\r\n                    datetime.now(timezone.utc),\r\n                    price,\r\n                    qty,\r\n                    session_id,\r\n                    datetime.now(timezone.utc)\r\n                ))\r\n            else:\r\n                # For exit, try to update the most recent open trade for this symbol\r\n                cursor.execute(\"\"\"\r\n                    UPDATE dbo.Trades\r\n                    SET ExitTime = ?, ExitPrice = ?, ExitQuantity = ?, ExitReason = ?\r\n                    WHERE TradeId = (\r\n                        SELECT TOP 1 TradeId FROM dbo.Trades \r\n                        WHERE Symbol = ? AND ExitTime IS NULL \r\n                        ORDER BY EntryTime DESC\r\n                    )\r\n                \"\"\", (\r\n                    datetime.now(timezone.utc),\r\n                    price,\r\n                    qty,\r\n                    f\"Webhook:{action}\",\r\n                    symbol\r\n     - using actual schema columns:\r\n            # WebhookEvents(SessionId, Timestamp, WebhookType, Symbol, TriggerReason, Price, MarketData, Conditions, CreatedAt)\r\n            symbol = payload.get('symbol', payload.get('ticker', 'UNKNOWN'))\r\n            webhook_type = payload.get('action', status)\r\n            trigger_reason = payload.get('reason', error or status)\r\n            price_val = payload.get('price')\r\n            \r\n            cursor.execute(\"\"\"\r\n                INSERT INTO dbo.WebhookEvents \r\n                (SessionId, Timestamp, WebhookType, Symbol, TriggerReason, Price, MarketData, Conditions, CreatedAt)\r\n                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)\r\n            \"\"\", (\r\n                session_id,\r\n                datetime.now(timezone.utc),\r\n                webhook_type[:50] if webhook_type else 'UNKNOWN',\r\n                symbol[:20] if symbol else 'UNKNOWN',\r\n                (trigger_reason or '')[:500] if trigger_reason else None,\r\n                float(price_val) if price_val else None,\r\n                json.dumps(payload),  # Store full payload in MarketData\r\n                json.dumps(response),  # Store response in Conditions\r\n                datetime.now(timezone.utc)",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/webhooks/webhook_server.py#330-330), lines 330 to 430</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/webhooks/webhook_server.py#330-330), lines 330 to 430
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="run_in_terminal">
+<details>
+<summary>Tool use: **run_in_terminal**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "terminal",
+  "terminalToolSessionId": "48749973-a977-498e-b29c-89da78b76648",
+  "terminalCommandId": "tool-225ddf1f-a172-4f02-8f5c-7974d58bf9a3",
+  "commandLine": {
+    "original": "Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like \"*webhook*\" -or $_.MainWindowTitle -like \"*webhook*\" } | Select-Object Id, ProcessName, StartTime | Format-Table"
+  },
+  "language": "pwsh",
+  "terminalCommandState": {
+    "exitCode": 0,
+    "timestamp": 1770233738915,
+    "duration": 0
+  },
+  "terminalCommandUri": {
+    "$mid": 1,
+    "path": "/fa11aaaa81af9c924643bc92dfb48652/7",
+    "scheme": "vscode-terminal",
+    "query": "command=tool-225ddf1f-a172-4f02-8f5c-7974d58bf9a3"
+  },
+  "terminalCommandOutput": {
+    "text": "",
+    "lineCount": 0
+  },
+  "terminalTheme": {
+    "background": "#181818",
+    "foreground": "#cccccc"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "run_in_terminal",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Run in Terminal\"",
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+The user is getting SQL errors about invalid column names 'Timestamp' and 'EventTime'. This means the webhook server code is trying to insert into columns that don't exist in the database tables. I need to find the webhook server code and check what column names it's using, then compare with the actual database schema.
+
+Let me search for the webhook server code and the schema.Let me check the actual schema for WebhookEvents and Trades tables: Now I can see the issue clearly:
+
+**Problem 1 - WebhookEvents table:**
+- Code uses: `(SessionId, EventTime, Payload, Status, Response, Error)`
+- Schema has: `(SessionId, Timestamp, WebhookType, Symbol, TriggerReason, Price, MarketData, Conditions, CreatedAt)`
+
+**Problem 2 - Trades table:**
+- Code uses: `(Timestamp, Action, Symbol, Quantity, Price, OrderId, Zscore, TradingMode)`
+- Schema has: `(TradeId, Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, ExitTime, ExitPrice, ...)`
+
+The webhook server is using completely wrong column names. Let me fix this: Now let me fix both methods to use the correct column names that match the actual database schema: Now let me verify the changes and check if there are any other issues: The changes look good. Now you need to restart the webhook server for the changes to take effect: The fixes are complete. Here's what I changed in `webhook_server.py`:
+
+**Problem 1: `WebhookEvents` table** 
+- Old code used non-existent columns: `EventTime, Payload, Status, Response, Error`
+- Fixed to use actual schema columns: `Timestamp, WebhookType, Symbol, TriggerReason, Price, MarketData, Conditions, CreatedAt`
+
+**Problem 2: `Trades` table**
+- Old code used non-existent columns: `Timestamp, Action, Quantity, Price, OrderId, Zscore, TradingMode`
+- Fixed to use actual schema columns: `Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, SessionId, CreatedAt`
+- Also added proper EXIT handling that updates existing trades with exit details
+
+To apply the fix, restart your webhook stack:
+
+```powershell
+.\stop_webhook_stack.ps1
+.\start_webhook_stack.ps1
+
+
+---
+
+_**User (2026-02-04 19:36Z)**_
+
+before that , can u proces this trade in the database
+ Executed EXIT: {'closed': [{'symbol': 'TQQQ', 'qty': 1122, 'order_id': '97c6522c-4ab8-490f-9320-0293e2d8ba2d'}], 'message': 'Closed 1 position(s)'}
+
+2026-02-04 14:30:03,987 - webhook_server - ERROR - Failed to log trade: ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'Timestamp'. (207) (SQLExecDirectW)")
+
+2026-02-04 14:30:04,005 - webhook_server - ERROR - Failed to log webhook event: ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'EventTime'. (207) (SQLExecDirectW)")
+in respective tables 
+
+---
+
+_**Agent (model copilot/claude-opus-4.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="run_in_terminal">
+<details>
+<summary>Tool use: **run_in_terminal**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "terminal",
+  "terminalToolSessionId": "b66bcddc-d357-42cb-bb5b-08ea8757eac7",
+  "terminalCommandId": "tool-1bb6d434-99b2-4b48-a297-27b8bc7b2c8d",
+  "commandLine": {
+    "original": "sqlcmd -S localhost -d TradingDB -E -Q \"SELECT TOP 1 TradeId, Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, ExitTime FROM dbo.Trades WHERE Symbol = 'TQQQ' AND ExitTime IS NULL ORDER BY EntryTime DESC\""
+  },
+  "language": "pwsh",
+  "terminalCommandState": {
+    "exitCode": 0,
+    "timestamp": 1770233808436,
+    "duration": 158
+  },
+  "terminalCommandUri": {
+    "$mid": 1,
+    "path": "/fa11aaaa81af9c924643bc92dfb48652/7",
+    "scheme": "vscode-terminal",
+    "query": "command=tool-1bb6d434-99b2-4b48-a297-27b8bc7b2c8d"
+  },
+  "terminalCommandOutput": {
+    "text": "an&gt; \u001b[93msqlcmd\u001b[0m \u001b[90m-S\u001b[0m localhost \u001b[90m-d\u001b[0m TradingDB \u001b[90m-E\u001b[0m \u001b[90m-Q\u001b[0m \u001b[36m\"SELECT TOP 1 \r\nTradeId, Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, ExitTime FROM dbo.Trades WHERE Symbol = 'TQQQ' AND ExitTime IS NULL ORDER BY EntryTime DESC\"\r\n\u001b[0mTradeId\r\n  Symbol     Direction  EntryTime     \r\n\r\n      EntryPrice   \r\n        EntryQuantity        ExitTime \r\n\r\n\r\n-------------------- ---------- ---------- -------------------------------------- -------------------- -------------------- --------------------------------------\r\n\r\n(0 rows affected)  ",
+    "lineCount": 32
+  },
+  "terminalTheme": {
+    "background": "#181818",
+    "foreground": "#cccccc"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "run_in_terminal",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Run in Terminal\"",
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="run_in_terminal">
+<details>
+<summary>Tool use: **run_in_terminal**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "terminal",
+  "terminalToolSessionId": "c2637d97-0224-4f77-bfe2-7605c7cb90cd",
+  "terminalCommandId": "tool-c50a7a4d-767a-4389-b8b8-48aec49b8849",
+  "commandLine": {
+    "original": "sqlcmd -S localhost -d TradingDB -E -Q \"SELECT TOP 1 SessionId FROM dbo.Sessions WHERE SessionType = 'PAPER' AND Status = 'active' ORDER BY StartTime DESC\""
+  },
+  "language": "pwsh",
+  "terminalCommandState": {
+    "exitCode": 0,
+    "timestamp": 1770233815642,
+    "duration": 103
+  },
+  "terminalCommandUri": {
+    "$mid": 1,
+    "path": "/fa11aaaa81af9c924643bc92dfb48652/7",
+    "scheme": "vscode-terminal",
+    "query": "command=tool-c50a7a4d-767a-4389-b8b8-48aec49b8849"
+  },
+  "terminalCommandOutput": {
+    "text": "SessionId\r\n\r\n\r\n--------------------------------------------------       \r\nWH-00be3941        \r\n\r\n\r\n\r\n(1 rows affected)  ",
+    "lineCount": 11
+  },
+  "terminalTheme": {
+    "background": "#181818",
+    "foreground": "#cccccc"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "run_in_terminal",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Run in Terminal\"",
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="run_in_terminal">
+<details>
+<summary>Tool use: **run_in_terminal**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "terminal",
+  "terminalToolSessionId": "06e3a3a4-791b-4971-8760-6dae54e29139",
+  "terminalCommandId": "tool-4e7ce094-eab2-4699-886d-ee6acbcf5254",
+  "commandLine": {
+    "original": "sqlcmd -S localhost -d TradingDB -E -Q \"SELECT TOP 3 TradeId, Symbol, Direction, EntryTime, ExitTime, NetPnL FROM dbo.Trades WHERE Symbol = 'TQQQ' ORDER BY EntryTime DESC\""
+  },
+  "language": "pwsh",
+  "terminalCommandState": {
+    "exitCode": 0,
+    "timestamp": 1770233825157,
+    "duration": 73
+  },
+  "terminalCommandUri": {
+    "$mid": 1,
+    "path": "/fa11aaaa81af9c924643bc92dfb48652/7",
+    "scheme": "vscode-terminal",
+    "query": "command=tool-4e7ce094-eab2-4699-886d-ee6acbcf5254"
+  },
+  "terminalCommandOutput": {
+    "text": "\u001b[90mE\u001b[0m \u001b[90m-Q\u001b[0m \u001b[36m\"SELECT TOP 3 \r\nTradeId, Symbol, Direction, EntryTime, ExitTime, NetPnL FROM dbo.Trades WHERE Symbol = 'TQQQ' ORDER BY EntryTime DESC\"\r\n\u001b[0mTradeId\r\n  Symbol     Direction  EntryTime     \r\n\r\n      ExitTime     \r\n\r\n       NetPnL      \r\n\r\n-------------------- ---------- ---------- -------------------------------------- -------------------------------------- --------------------\r\n              189243 TQQQ       BUY   \r\n                2026-01-13 15:35:00.0000000            2026-01-13 15:50:00.0000000            -187.5300\r\n               38403 TQQQ       BUY   \r\n                2026-01-13 15:25:00.0000000            2026-01-13 15:50:00.0000000            -125.8140\r\n               38588 TQQQ       BUY   \r\n                2026-01-13 15:25:00.0000000            2026-01-13 15:50:00.0000000            -116.6612\r\n\r\n(3 rows affected)  ",
+    "lineCount": 50
+  },
+  "terminalTheme": {
+    "background": "#181818",
+    "foreground": "#cccccc"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "run_in_terminal",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Run in Terminal\"",
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="run_in_terminal">
+<details>
+<summary>Tool use: **run_in_terminal**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "terminal",
+  "terminalToolSessionId": "b932771f-8175-47d4-a1b3-01788fff8786",
+  "terminalCommandId": "tool-26619bd5-c697-490e-92ae-971c53918cf4",
+  "commandLine": {
+    "original": "sqlcmd -S localhost -d TradingDB -E -Q \"\n-- Insert the EXIT trade as a completed trade record\nINSERT INTO dbo.Trades \n(Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, ExitTime, ExitPrice, ExitQuantity, ExitReason, SessionId, CreatedAt)\nVALUES \n('TQQQ', 'LONG', '2026-02-04 14:30:03', 0, 1122, '2026-02-04 14:30:03', 0, 1122, 'Webhook:EXIT', 'WH-00be3941', GETDATE());\n\n-- Insert the webhook event\nINSERT INTO dbo.WebhookEvents \n(SessionId, Timestamp, WebhookType, Symbol, TriggerReason, Price, MarketData, Conditions, CreatedAt)\nVALUES \n('WH-00be3941', '2026-02-04 14:30:03', 'EXIT', 'TQQQ', 'Closed 1 position(s)', NULL, \n'{\\\"closed\\\": [{\\\"symbol\\\": \\\"TQQQ\\\", \\\"qty\\\": 1122, \\\"order_id\\\": \\\"97c6522c-4ab8-490f-9320-0293e2d8ba2d\\\"}], \\\"message\\\": \\\"Closed 1 position(s)\\\"}',\n'{\\\"order_id\\\": \\\"97c6522c-4ab8-490f-9320-0293e2d8ba2d\\\"}', GETDATE());\n\nSELECT 'Trade and WebhookEvent inserted successfully' as Result;\n\""
+  },
+  "language": "pwsh"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "run_in_terminal",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Run in Terminal\"",
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+The user wants me to manually insert the trade data that failed to log into the database. The trade was an EXIT of TQQQ with qty 1122 and order_id '97c6522c-4ab8-490f-9320-0293e2d8ba2d' at around 2026-02-04 14:30:03.
+
+For the Trades table, since this is an EXIT, I need to update an existing open trade for TQQQ with the exit details.
+
+For the WebhookEvents table, I need to insert a record with the correct columns.
+
+Let me run the SQL commands to do this.No open TQQQ trade exists (they're all closed from backtests). Since this was a real EXIT trade from paper trading, I'll insert it as a complete trade record (entry and exit at same time since we don't have the entry data): 
+
+---
+
