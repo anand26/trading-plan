@@ -31,7 +31,7 @@ class TestObserverIntegration:
         
         assert performance is not None
         assert hasattr(performance, "total_pnl")
-        assert hasattr(performance, "win_rate")
+        assert hasattr(performance, "overall_win_rate")
     
     def test_observer_full_context(self, observer):
         """Should retrieve complete context."""

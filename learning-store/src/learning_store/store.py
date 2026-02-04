@@ -432,6 +432,9 @@ class LearningStore:
         """
         db = get_db()
         
+        if not db.is_connected or db._connection is None:
+            return 0
+        
         if deactivate_only:
             sql = "UPDATE dbo.Patterns SET IsActive = 0"
         else:

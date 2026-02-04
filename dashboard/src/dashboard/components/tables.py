@@ -40,7 +40,11 @@ def render_trade_table(
             display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
     
     # Format P&L with color indicator
-    if "PnL" in display_df.columns:
+    if "NetPnL" in display_df.columns:
+        display_df["NetPnL"] = display_df["NetPnL"].apply(
+            lambda x: f"🟢 ${x:.2f}" if x >= 0 else f"🔴 ${x:.2f}"
+        )
+    elif "PnL" in display_df.columns:
         display_df["PnL"] = display_df["PnL"].apply(
             lambda x: f"🟢 ${x:.2f}" if x >= 0 else f"🔴 ${x:.2f}"
         )

@@ -219,6 +219,8 @@ class AdaptiveAgent:
             market = self.observer.get_market_snapshot()
             performance = self.observer.get_performance_snapshot()
             decision = None
+            matched_patterns = []
+            recommendations = []
         
         # Complete cycle
         cycle_end = datetime.now()
@@ -232,10 +234,10 @@ class AdaptiveAgent:
             duration_ms=(cycle_end - cycle_start).total_seconds() * 1000,
             market_snapshot=market,
             performance_snapshot=performance,
-            patterns_matched=len(matched_patterns) if 'matched_patterns' in dir() else 0,
-            recommendations_generated=len(recommendations) if 'recommendations' in dir() else 0,
-            decision=decision if 'decision' in dir() else None,
-            decision_executed=decision.executed if ('decision' in dir() and decision) else False,
+            patterns_matched=len(matched_patterns),
+            recommendations_generated=len(recommendations),
+            decision=decision,
+            decision_executed=decision.executed if decision else False,
             errors=errors,
         )
         
@@ -295,9 +297,10 @@ class AdaptiveAgent:
             executed = decision.executed
         
         cycle_end = datetime.now()
+        self.state.cycles_completed += 1
         
-        return CycleResult(
-            cycle_number=self.state.cycles_completed + 1,
+        result = CycleResult(
+            cycle_number=self.state.cycles_completed,
             started_at=cycle_start,
             completed_at=cycle_end,
             duration_ms=(cycle_end - cycle_start).total_seconds() * 1000,
@@ -309,6 +312,12 @@ class AdaptiveAgent:
             decision_executed=executed,
             errors=[],
         )
+        
+        # Call cycle callback if registered
+        if self._on_cycle_complete:
+            self._on_cycle_complete(result)
+        
+        return result
     
     def get_state(self) -> AgentState:
         """Get current agent state."""

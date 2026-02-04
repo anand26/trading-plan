@@ -1,0 +1,46 @@
+# ============================================
+# TQQQ/SQQQ Pairs Webhook Server
+# ============================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install ODBC driver for SQL Server (modern approach without apt-key)
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg \
+    tzdata \
+    unixodbc \
+    unixodbc-dev \
+    && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
+    && apt-get update \
+    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set timezone
+ENV TZ=America/New_York
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY webhook_server.py .
+
+# Expose port
+EXPOSE 8080
+
+# Health check with longer timeout and retry
+HEALTHCHECK --interval=30s --timeout=15s --start-period=10s --retries=5 \
+    CMD curl -f -m 10 http://localhost:8080/health || exit 1
+
+# Run server with correct parameters
+CMD ["uvicorn", "webhook_server:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8080", \
+     "--workers", "1", \
+     "--timeout-keep-alive", "30", \
+     "--loop", "asyncio"]

@@ -35,10 +35,10 @@ class TestCoreTablesExist:
     
     @pytest.mark.parametrize("table_name", [
         "Trades",
-        "MarketData",
+        "Orders",
         "StrategyParameters",
-        "BacktestResults",
-        "PerformanceMetrics",
+        "BacktestOutcomes",
+        "DailyPerformance",
     ])
     def test_core_table_exists(self, db_cursor, table_name):
         """Should have required core tables."""
@@ -87,7 +87,7 @@ class TestStoredProcedures:
     
     @pytest.mark.parametrize("proc_name", [
         "sp_RecordTrade",
-        "sp_GetPerformanceMetrics",
+        "sp_GetLastTrades",
         "sp_GetTopPatterns",
         "sp_GetActiveRecommendations",
         "sp_GetAgentSummary",
@@ -108,8 +108,8 @@ class TestViews:
     """Tests for database views."""
     
     @pytest.mark.parametrize("view_name", [
-        "vw_RecentTrades",
-        "vw_DailyPerformance",
+        "v_RecentTrades",
+        "v_DailyTradeStats",
         "vw_PatternAnalysis",
         "vw_RecentAgentActivity",
     ])
@@ -130,22 +130,26 @@ class TestDataOperations:
     
     def test_insert_and_read_trade(self, db_cursor, clean_test_data):
         """Should insert and read trade records."""
-        # Insert
+        # Insert using actual Trades schema (02_core_schema.sql)
         db_cursor.execute("""
             INSERT INTO Trades (
-                TradeId, Symbol, Side, Quantity, EntryPrice, EntryTime,
-                Status, CreatedAt
+                Symbol, Direction, EntryTime, EntryPrice, EntryQuantity,
+                SessionId, CreatedAt
             ) VALUES (
-                'TEST_001', 'TQQQ', 'BUY', 100, 45.00, GETDATE(),
-                'OPEN', GETDATE()
+                'TQQQ', 'LONG', GETDATE(), 45.00, 100,
+                'TEST_SESSION', GETDATE()
             )
         """)
         
+        # Get the inserted ID
+        db_cursor.execute("SELECT @@IDENTITY")
+        trade_id = db_cursor.fetchone()[0]
+        
         # Read back
         db_cursor.execute("""
-            SELECT Symbol, Quantity, EntryPrice 
-            FROM Trades WHERE TradeId = 'TEST_001'
-        """)
+            SELECT Symbol, EntryQuantity, EntryPrice 
+            FROM Trades WHERE TradeId = ?
+        """, (trade_id,))
         result = db_cursor.fetchone()
         
         assert result is not None
@@ -153,41 +157,48 @@ class TestDataOperations:
         assert result[1] == 100
         
         # Cleanup
-        db_cursor.execute("DELETE FROM Trades WHERE TradeId = 'TEST_001'")
+        db_cursor.execute("DELETE FROM Trades WHERE TradeId = ?", (trade_id,))
     
-    def test_insert_market_data(self, db_cursor, clean_test_data):
-        """Should insert market data."""
+    def test_insert_signal_data(self, db_cursor, clean_test_data):
+        """Should insert signal data."""
         db_cursor.execute("""
-            INSERT INTO MarketData (
-                Symbol, Timestamp, Price, Volume, RSI, Momentum
+            INSERT INTO Signals (
+                Timestamp, Symbol, SignalType, Action, Price, RSI, SessionId
             ) VALUES (
-                'TQQQ', GETDATE(), 45.50, 100000, 55.0, 0.02
+                GETDATE(), 'TQQQ', 'ENTRY_L1', 'BUY', 45.50, 32.5, 'TEST_SESSION'
             )
         """)
         
         db_cursor.execute("""
-            SELECT TOP 1 Price, RSI FROM MarketData 
-            WHERE Symbol = 'TQQQ' ORDER BY Timestamp DESC
+            SELECT TOP 1 Price, RSI FROM Signals 
+            WHERE Symbol = 'TQQQ' AND SessionId = 'TEST_SESSION' 
+            ORDER BY Timestamp DESC
         """)
         result = db_cursor.fetchone()
         
         assert result is not None
         assert result[0] == 45.50
+        
+        # Cleanup
+        db_cursor.execute("DELETE FROM Signals WHERE SessionId = 'TEST_SESSION'")
     
     def test_strategy_parameters_crud(self, db_cursor, clean_test_data):
         """Should perform CRUD on strategy parameters."""
-        # Create/Update via MERGE
+        # Create/Update via MERGE using actual column names (ParamType is required)
         db_cursor.execute("""
             MERGE StrategyParameters AS target
-            USING (SELECT 'TestParam' AS Name, '100' AS Value) AS source
-            ON target.Name = source.Name
-            WHEN MATCHED THEN UPDATE SET Value = source.Value
-            WHEN NOT MATCHED THEN INSERT (Name, Value) VALUES (source.Name, source.Value);
+            USING (SELECT 'TQQQ_SCALPING' AS StrategyId, 'TestParam' AS ParamName, 
+                          '100' AS ParamValue, 'decimal' AS ParamType) AS source
+            ON target.StrategyId = source.StrategyId AND target.ParamName = source.ParamName
+            WHEN MATCHED THEN UPDATE SET ParamValue = source.ParamValue, LastUpdated = GETDATE()
+            WHEN NOT MATCHED THEN INSERT (StrategyId, ParamName, ParamValue, ParamType, IsActive) 
+                VALUES (source.StrategyId, source.ParamName, source.ParamValue, source.ParamType, 1);
         """)
         
         # Read
         db_cursor.execute("""
-            SELECT Value FROM StrategyParameters WHERE Name = 'TestParam'
+            SELECT ParamValue FROM StrategyParameters 
+            WHERE StrategyId = 'TQQQ_SCALPING' AND ParamName = 'TestParam'
         """)
         result = db_cursor.fetchone()
         
@@ -195,7 +206,10 @@ class TestDataOperations:
         assert result[0] == "100"
         
         # Cleanup
-        db_cursor.execute("DELETE FROM StrategyParameters WHERE Name = 'TestParam'")
+        db_cursor.execute("""
+            DELETE FROM StrategyParameters 
+            WHERE StrategyId = 'TQQQ_SCALPING' AND ParamName = 'TestParam'
+        """)
 
 
 @pytest.mark.database
@@ -209,15 +223,15 @@ class TestTransactions:
         try:
             db_cursor.execute("""
                 INSERT INTO Trades (
-                    TradeId, Symbol, Side, Quantity, EntryPrice, EntryTime, Status
-                ) VALUES ('ROLLBACK_TEST', 'TQQQ', 'BUY', 100, 45.00, GETDATE(), 'OPEN')
+                    Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, SessionId
+                ) VALUES ('TQQQ', 'LONG', GETDATE(), 45.00, 100, 'ROLLBACK_TEST')
             """)
             
             # Force rollback
             db_connection.rollback()
             
             # Verify not inserted
-            db_cursor.execute("SELECT COUNT(*) FROM Trades WHERE TradeId = 'ROLLBACK_TEST'")
+            db_cursor.execute("SELECT COUNT(*) FROM Trades WHERE SessionId = 'ROLLBACK_TEST'")
             result = db_cursor.fetchone()
             
             assert result[0] == 0

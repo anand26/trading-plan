@@ -1,0 +1,47 @@
+VERSION BACKUP: v2.1 Hybrid Mean-Reversion + Volume
+====================================================
+Date: February 3, 2026
+Status: FAILED - All 24 combinations negative returns
+
+STRATEGY DESCRIPTION:
+- Mean-reversion core (RSI oversold/overbought)
+- Volume spike confirmation for entry
+- Wider stops (2-3%)
+- Pyramiding position sizing
+
+TEST RESULTS SUMMARY:
+---------------------
+| RSI    | Trades | Return  | Win Rate | Profit Factor |
+|--------|--------|---------|----------|---------------|
+| 25     | 36     | -0.42%  | 61%      | 0.95          |
+| 28     | 56     | -7.0%   | 54%      | 0.63          |
+| 30     | 79     | -6.5%   | 59%      | 0.73          |
+| 35     | 155    | -6.2%   | 63%      | 0.85          |
+
+KEY INSIGHT:
+Even with 60%+ win rate, average loss ($660-$800) is ~2x average win ($370-$400)
+= Negative expectancy regardless of parameters
+
+ROOT CAUSE:
+- TQQQ/SQQQ in choppy/range-bound environment (2025)
+- 3x leveraged ETF volatility decay
+- 5-minute mean-reversion gets whipsawed
+
+NEXT STEP:
+Pivoting to Pairs Ratio Strategy (v3.0)
+- Trade TQQQ/SQQQ spread ratio, not direction
+- Z-score based entry/exit
+- Long-only (never short)
+
+FILES BACKED UP:
+- algorithms/TQQQScalpingAlgorithm_v2.1_hybrid.py
+- backtest/backtest_runner.py (v2.1 hybrid params)
+- backtest/parameter_optimizer.py (v2.1 hybrid params)
+- backtest/parameter_combinations_v2.1_hybrid.csv
+- results_csv/results_hybrid_v2.1_1.csv (24 test results)
+
+PREVIOUS VERSIONS:
+- v1.7: Mean-reversion RSI 28, +3.80%, 31 trades (BEST SO FAR)
+- v2.0: Momentum breakout, -3.70% to -24%, FAILED
+- v3.0: Wide stops momentum, -9.99% best, FAILED
+- v2.1: Hybrid mean-rev + volume, -0.42% to -10%, FAILED

@@ -1,0 +1,933 @@
+{
+  "timestamp": "2026-02-03T14:47:14.124490",
+  "total_backtests": 20,
+  "analysis": {
+    "total_tests": 20,
+    "best_by_sharpe": {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 46,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "sharpe": 0.0283,
+      "return": 2.4668,
+      "drawdown": 0.122
+    },
+    "best_by_return": {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 46,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.57,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "sharpe": 0.0283,
+      "return": 2.5658999999999996,
+      "drawdown": 0.126
+    },
+    "best_by_winrate": {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 43,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "sharpe": 0.027,
+      "return": 2.2173,
+      "win_rate": 0.6177
+    },
+    "parameter_impact": {
+      "algorithm_name": {
+        "TQQQSQQQPairsAlgorithm": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "zscore_lookback": {
+        "43": {
+          "count": 1,
+          "total_sharpe": 0.027,
+          "total_return": 2.2173,
+          "avg_sharpe": 0.027,
+          "avg_return": 2.2173
+        },
+        "44": {
+          "count": 4,
+          "total_sharpe": 0.1081,
+          "total_return": 9.2889,
+          "avg_sharpe": 0.027025,
+          "avg_return": 2.322225
+        },
+        "46": {
+          "count": 4,
+          "total_sharpe": 0.11309999999999998,
+          "total_return": 9.791699999999999,
+          "avg_sharpe": 0.028274999999999995,
+          "avg_return": 2.4479249999999997
+        },
+        "47": {
+          "count": 1,
+          "total_sharpe": 0.0282,
+          "total_return": 2.3946,
+          "avg_sharpe": 0.0282,
+          "avg_return": 2.3946
+        },
+        "45": {
+          "count": 10,
+          "total_sharpe": 0.2781,
+          "total_return": 24.0299,
+          "avg_sharpe": 0.02781,
+          "avg_return": 2.40299
+        }
+      },
+      "entry_zscore": {
+        "1.5": {
+          "count": 18,
+          "total_sharpe": 0.49870000000000003,
+          "total_return": 42.9576,
+          "avg_sharpe": 0.027705555555555556,
+          "avg_return": 2.3865333333333334
+        },
+        "1.45": {
+          "count": 1,
+          "total_sharpe": 0.0279,
+          "total_return": 2.3824,
+          "avg_sharpe": 0.0279,
+          "avg_return": 2.3824
+        },
+        "1.55": {
+          "count": 1,
+          "total_sharpe": 0.0279,
+          "total_return": 2.3824,
+          "avg_sharpe": 0.0279,
+          "avg_return": 2.3824
+        }
+      },
+      "exit_zscore": {
+        "0.3": {
+          "count": 12,
+          "total_sharpe": 0.33309999999999995,
+          "total_return": 28.366500000000002,
+          "avg_sharpe": 0.02775833333333333,
+          "avg_return": 2.363875
+        },
+        "0.32": {
+          "count": 6,
+          "total_sharpe": 0.1664,
+          "total_return": 14.5208,
+          "avg_sharpe": 0.027733333333333332,
+          "avg_return": 2.4201333333333332
+        },
+        "0.33": {
+          "count": 1,
+          "total_sharpe": 0.0274,
+          "total_return": 2.4365,
+          "avg_sharpe": 0.0274,
+          "avg_return": 2.4365
+        },
+        "0.35": {
+          "count": 1,
+          "total_sharpe": 0.0276,
+          "total_return": 2.3986,
+          "avg_sharpe": 0.0276,
+          "avg_return": 2.3986
+        }
+      },
+      "stop_zscore": {
+        "3.0": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "position_size": {
+        "0.55": {
+          "count": 11,
+          "total_sharpe": 0.3044,
+          "total_return": 25.973300000000002,
+          "avg_sharpe": 0.027672727272727272,
+          "avg_return": 2.361209090909091
+        },
+        "0.52": {
+          "count": 1,
+          "total_sharpe": 0.0278,
+          "total_return": 2.2429,
+          "avg_sharpe": 0.0278,
+          "avg_return": 2.2429
+        },
+        "0.53": {
+          "count": 1,
+          "total_sharpe": 0.0278,
+          "total_return": 2.2886,
+          "avg_sharpe": 0.0278,
+          "avg_return": 2.2886
+        },
+        "0.57": {
+          "count": 6,
+          "total_sharpe": 0.16649999999999998,
+          "total_return": 14.6941,
+          "avg_sharpe": 0.027749999999999997,
+          "avg_return": 2.4490166666666666
+        },
+        "0.58": {
+          "count": 1,
+          "total_sharpe": 0.028,
+          "total_return": 2.5235,
+          "avg_sharpe": 0.028,
+          "avg_return": 2.5235
+        }
+      },
+      "stop_loss_pct": {
+        "0.02": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "max_hold_minutes": {
+        "0": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "min_bars_between": {
+        "3": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "rsi_period": {
+        "14": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "rsi_oversold": {
+        "28.0": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "rsi_overbought": {
+        "72.0": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "bb_period": {
+        "20": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "bb_std_dev": {
+        "2.0": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "position_size_level1": {
+        "0.5": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "position_size_level2": {
+        "0.3": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "position_size_level3": {
+        "0.2": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "ema_fast_period": {
+        "9": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      },
+      "ema_slow_period": {
+        "21": {
+          "count": 20,
+          "total_sharpe": 0.5545,
+          "total_return": 47.72239999999999,
+          "avg_sharpe": 0.027725,
+          "avg_return": 2.3861199999999996
+        }
+      }
+    },
+    "avg_sharpe": 0.027725,
+    "avg_return": 2.38612
+  },
+  "all_results": [
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 43,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_143948_75e3762f",
+      "sharpe": 0.027,
+      "return": 2.2173,
+      "drawdown": 0.128,
+      "win_rate": 0.6177,
+      "trades": 1606
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 44,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144006_1f56e00b",
+      "sharpe": 0.027,
+      "return": 2.3056,
+      "drawdown": 0.11699999999999999,
+      "win_rate": 0.6119,
+      "trades": 1608
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 46,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144029_96b60040",
+      "sharpe": 0.0282,
+      "return": 2.3346,
+      "drawdown": 0.124,
+      "win_rate": 0.5989,
+      "trades": 1603
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 47,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144048_d71c9752",
+      "sharpe": 0.0282,
+      "return": 2.3946,
+      "drawdown": 0.127,
+      "win_rate": 0.5986,
+      "trades": 1607
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.52,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144107_3becb8c7",
+      "sharpe": 0.0278,
+      "return": 2.2429,
+      "drawdown": 0.11,
+      "win_rate": 0.6087,
+      "trades": 1610
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.53,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144129_cca395ff",
+      "sharpe": 0.0278,
+      "return": 2.2886,
+      "drawdown": 0.11199999999999999,
+      "win_rate": 0.6087,
+      "trades": 1610
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.57,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144148_fadd96a5",
+      "sharpe": 0.0279,
+      "return": 2.4758,
+      "drawdown": 0.12,
+      "win_rate": 0.6083,
+      "trades": 1611
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.58,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144211_d4464c3e",
+      "sharpe": 0.028,
+      "return": 2.5235,
+      "drawdown": 0.122,
+      "win_rate": 0.6083,
+      "trades": 1611
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144236_10b579e7",
+      "sharpe": 0.0279,
+      "return": 2.4023,
+      "drawdown": 0.11599999999999999,
+      "win_rate": 0.6111,
+      "trades": 1638
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.33,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144258_5af10c38",
+      "sharpe": 0.0274,
+      "return": 2.4365,
+      "drawdown": 0.114,
+      "win_rate": 0.6105,
+      "trades": 1651
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.35,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144323_8716c4c4",
+      "sharpe": 0.0276,
+      "return": 2.3986,
+      "drawdown": 0.12300000000000001,
+      "win_rate": 0.6079,
+      "trades": 1686
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 44,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144344_52d343bc",
+      "sharpe": 0.027,
+      "return": 2.2522,
+      "drawdown": 0.121,
+      "win_rate": 0.612,
+      "trades": 1634
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 44,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.57,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144403_d734d5fe",
+      "sharpe": 0.0271,
+      "return": 2.3944,
+      "drawdown": 0.12,
+      "win_rate": 0.6119,
+      "trades": 1608
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 46,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144431_3d4eaf28",
+      "sharpe": 0.0283,
+      "return": 2.4668,
+      "drawdown": 0.122,
+      "win_rate": 0.5999,
+      "trades": 1632
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 46,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.57,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144454_e0857919",
+      "sharpe": 0.0283,
+      "return": 2.4244,
+      "drawdown": 0.128,
+      "win_rate": 0.5989,
+      "trades": 1603
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.45,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144517_a8a805a5",
+      "sharpe": 0.0279,
+      "return": 2.3824,
+      "drawdown": 0.11599999999999999,
+      "win_rate": 0.6087,
+      "trades": 1610
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.55,
+        "exit_zscore": 0.3,
+        "stop_zscore": 3.0,
+        "position_size": 0.55,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144541_8f09aca9",
+      "sharpe": 0.0279,
+      "return": 2.3824,
+      "drawdown": 0.11599999999999999,
+      "win_rate": 0.6087,
+      "trades": 1610
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 44,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.57,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144604_42f185f2",
+      "sharpe": 0.027,
+      "return": 2.3367,
+      "drawdown": 0.125,
+      "win_rate": 0.612,
+      "trades": 1634
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 45,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.57,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144631_bf2a43bc",
+      "sharpe": 0.0279,
+      "return": 2.4969,
+      "drawdown": 0.12,
+      "win_rate": 0.6111,
+      "trades": 1638
+    },
+    {
+      "params": {
+        "algorithm_name": "TQQQSQQQPairsAlgorithm",
+        "zscore_lookback": 46,
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.32,
+        "stop_zscore": 3.0,
+        "position_size": 0.57,
+        "stop_loss_pct": 0.02,
+        "max_hold_minutes": 0,
+        "min_bars_between": 3,
+        "rsi_period": 14,
+        "rsi_oversold": 28.0,
+        "rsi_overbought": 72.0,
+        "bb_period": 20,
+        "bb_std_dev": 2.0,
+        "position_size_level1": 0.5,
+        "position_size_level2": 0.3,
+        "position_size_level3": 0.2,
+        "ema_fast_period": 9,
+        "ema_slow_period": 21
+      },
+      "session_id": "BT_20260203_144652_3529f21a",
+      "sharpe": 0.0283,
+      "return": 2.5658999999999996,
+      "drawdown": 0.126,
+      "win_rate": 0.6002,
+      "trades": 1631
+    }
+  ]
+}

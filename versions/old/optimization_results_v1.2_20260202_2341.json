@@ -1,0 +1,1008 @@
+{
+  "timestamp": "2026-02-02T23:39:09.132962",
+  "total_backtests": 32,
+  "analysis": {
+    "total_tests": 32,
+    "best_by_sharpe": {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006
+    },
+    "best_by_return": {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 22.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "sharpe": 0.6575,
+      "return": 0.019299999999999998,
+      "drawdown": 0.006
+    },
+    "best_by_winrate": {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "win_rate": 1.0
+    },
+    "parameter_impact": {
+      "rsi_period": {
+        "18.0": {
+          "count": 32,
+          "total_sharpe": 45.50350000000001,
+          "total_return": 0.5858000000000001,
+          "avg_sharpe": 1.4219843750000003,
+          "avg_return": 0.018306250000000003
+        }
+      },
+      "rsi_oversold": {
+        "20.0": {
+          "count": 30,
+          "total_sharpe": 43.41120000000001,
+          "total_return": 0.5482000000000001,
+          "avg_sharpe": 1.4470400000000003,
+          "avg_return": 0.01827333333333334
+        },
+        "18.0": {
+          "count": 1,
+          "total_sharpe": 1.4348,
+          "total_return": 0.0183,
+          "avg_sharpe": 1.4348,
+          "avg_return": 0.0183
+        },
+        "22.0": {
+          "count": 1,
+          "total_sharpe": 0.6575,
+          "total_return": 0.019299999999999998,
+          "avg_sharpe": 0.6575,
+          "avg_return": 0.019299999999999998
+        }
+      },
+      "rsi_overbought": {
+        "79.0": {
+          "count": 30,
+          "total_sharpe": 42.633900000000004,
+          "total_return": 0.5492000000000001,
+          "avg_sharpe": 1.4211300000000002,
+          "avg_return": 0.018306666666666672
+        },
+        "77.0": {
+          "count": 1,
+          "total_sharpe": 1.4348,
+          "total_return": 0.0183,
+          "avg_sharpe": 1.4348,
+          "avg_return": 0.0183
+        },
+        "81.0": {
+          "count": 1,
+          "total_sharpe": 1.4348,
+          "total_return": 0.0183,
+          "avg_sharpe": 1.4348,
+          "avg_return": 0.0183
+        }
+      },
+      "bb_period": {
+        "29.0": {
+          "count": 30,
+          "total_sharpe": 42.633900000000004,
+          "total_return": 0.5492000000000001,
+          "avg_sharpe": 1.4211300000000002,
+          "avg_return": 0.018306666666666672
+        },
+        "27.0": {
+          "count": 1,
+          "total_sharpe": 1.4348,
+          "total_return": 0.0183,
+          "avg_sharpe": 1.4348,
+          "avg_return": 0.0183
+        },
+        "31.0": {
+          "count": 1,
+          "total_sharpe": 1.4348,
+          "total_return": 0.0183,
+          "avg_sharpe": 1.4348,
+          "avg_return": 0.0183
+        }
+      },
+      "bb_std_dev": {
+        "1.5": {
+          "count": 30,
+          "total_sharpe": 42.633900000000004,
+          "total_return": 0.5492000000000001,
+          "avg_sharpe": 1.4211300000000002,
+          "avg_return": 0.018306666666666672
+        },
+        "1.3": {
+          "count": 1,
+          "total_sharpe": 1.4348,
+          "total_return": 0.0183,
+          "avg_sharpe": 1.4348,
+          "avg_return": 0.0183
+        },
+        "1.7": {
+          "count": 1,
+          "total_sharpe": 1.4348,
+          "total_return": 0.0183,
+          "avg_sharpe": 1.4348,
+          "avg_return": 0.0183
+        }
+      },
+      "stop_loss_pct": {
+        "0.012": {
+          "count": 9,
+          "total_sharpe": 13.050900000000002,
+          "total_return": 0.16439999999999996,
+          "avg_sharpe": 1.4501000000000002,
+          "avg_return": 0.018266666666666664
+        },
+        "0.015": {
+          "count": 17,
+          "total_sharpe": 23.752,
+          "total_return": 0.3117999999999999,
+          "avg_sharpe": 1.3971764705882352,
+          "avg_return": 0.01834117647058823
+        },
+        "0.018": {
+          "count": 6,
+          "total_sharpe": 8.7006,
+          "total_return": 0.1096,
+          "avg_sharpe": 1.4501,
+          "avg_return": 0.018266666666666667
+        }
+      },
+      "take_profit_pct": {
+        "0.018": {
+          "count": 6,
+          "total_sharpe": 8.7006,
+          "total_return": 0.1096,
+          "avg_sharpe": 1.4501,
+          "avg_return": 0.018266666666666667
+        },
+        "0.02": {
+          "count": 17,
+          "total_sharpe": 23.752,
+          "total_return": 0.3117999999999999,
+          "avg_sharpe": 1.3971764705882352,
+          "avg_return": 0.01834117647058823
+        },
+        "0.022": {
+          "count": 9,
+          "total_sharpe": 13.050900000000002,
+          "total_return": 0.16439999999999996,
+          "avg_sharpe": 1.4501000000000002,
+          "avg_return": 0.018266666666666664
+        }
+      },
+      "ema_fast_period": {
+        "8.0": {
+          "count": 32,
+          "total_sharpe": 45.50350000000001,
+          "total_return": 0.5858000000000001,
+          "avg_sharpe": 1.4219843750000003,
+          "avg_return": 0.018306250000000003
+        }
+      },
+      "ema_slow_period": {
+        "20.0": {
+          "count": 32,
+          "total_sharpe": 45.50350000000001,
+          "total_return": 0.5858000000000001,
+          "avg_sharpe": 1.4219843750000003,
+          "avg_return": 0.018306250000000003
+        }
+      },
+      "position_size_level1": {
+        "0.55": {
+          "count": 8,
+          "total_sharpe": 12.929599999999997,
+          "total_return": 0.14,
+          "avg_sharpe": 1.6161999999999996,
+          "avg_return": 0.0175
+        },
+        "0.6": {
+          "count": 16,
+          "total_sharpe": 22.179499999999997,
+          "total_return": 0.2938,
+          "avg_sharpe": 1.3862187499999998,
+          "avg_return": 0.0183625
+        },
+        "0.65": {
+          "count": 8,
+          "total_sharpe": 10.3944,
+          "total_return": 0.152,
+          "avg_sharpe": 1.2993,
+          "avg_return": 0.019
+        }
+      },
+      "position_size_level2": {
+        "0.28": {
+          "count": 8,
+          "total_sharpe": 12.929599999999997,
+          "total_return": 0.14,
+          "avg_sharpe": 1.6161999999999996,
+          "avg_return": 0.0175
+        },
+        "0.25": {
+          "count": 16,
+          "total_sharpe": 22.179499999999997,
+          "total_return": 0.2938,
+          "avg_sharpe": 1.3862187499999998,
+          "avg_return": 0.0183625
+        },
+        "0.22": {
+          "count": 8,
+          "total_sharpe": 10.3944,
+          "total_return": 0.152,
+          "avg_sharpe": 1.2993,
+          "avg_return": 0.019
+        }
+      },
+      "position_size_level3": {
+        "0.17": {
+          "count": 8,
+          "total_sharpe": 12.929599999999997,
+          "total_return": 0.14,
+          "avg_sharpe": 1.6161999999999996,
+          "avg_return": 0.0175
+        },
+        "0.15": {
+          "count": 16,
+          "total_sharpe": 22.179499999999997,
+          "total_return": 0.2938,
+          "avg_sharpe": 1.3862187499999998,
+          "avg_return": 0.0183625
+        },
+        "0.13": {
+          "count": 8,
+          "total_sharpe": 10.3944,
+          "total_return": 0.152,
+          "avg_sharpe": 1.2993,
+          "avg_return": 0.019
+        }
+      }
+    },
+    "avg_sharpe": 1.421984375,
+    "avg_return": 0.01830625
+  },
+  "all_results": [
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225050_7b242852",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225211_11abf62f",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225324_5eceaeb6",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225449_0024c1e0",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225559_ace98a4b",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225708_558cbda9",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.018,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225819_6d604e01",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.018,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.55,
+        "position_size_level2": 0.28,
+        "position_size_level3": 0.17
+      },
+      "session_id": "BT_20260202_225928_0887bb37",
+      "sharpe": 1.6162,
+      "return": 0.0175,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_230051_bf497bfe",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_230253_443ac98e",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_230426_9ab6374a",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_230553_5b1e326e",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_230726_1a0fa086",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_230859_4d77fd95",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.018,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_231029_33450332",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.018,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_231154_4fdf42e8",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_231327_7086bc5e",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_231456_8799f2f9",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.012,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_231633_0637fac4",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.018,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_231815_b557990d",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_231952_822715a2",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_232129_f70081de",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.018,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_232314_10b1b490",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.018,
+        "take_profit_pct": 0.022,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.65,
+        "position_size_level2": 0.22,
+        "position_size_level3": 0.13
+      },
+      "session_id": "BT_20260202_232456_9949bcee",
+      "sharpe": 1.2993,
+      "return": 0.019,
+      "drawdown": 0.006999999999999999,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 18.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_232627_47949c7f",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 22.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_232806_c9148e4b",
+      "sharpe": 0.6575,
+      "return": 0.019299999999999998,
+      "drawdown": 0.006,
+      "win_rate": 0.8333,
+      "trades": 6
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 77.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_232937_bf313266",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 81.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_233110_b3ae4531",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 27.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_233244_deaf6c1f",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 31.0,
+        "bb_std_dev": 1.5,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_233417_fde7c02b",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.3,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_233558_2b1bf725",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    },
+    {
+      "params": {
+        "rsi_period": 18.0,
+        "rsi_oversold": 20.0,
+        "rsi_overbought": 79.0,
+        "bb_period": 29.0,
+        "bb_std_dev": 1.7,
+        "stop_loss_pct": 0.015,
+        "take_profit_pct": 0.02,
+        "ema_fast_period": 8.0,
+        "ema_slow_period": 20.0,
+        "position_size_level1": 0.6,
+        "position_size_level2": 0.25,
+        "position_size_level3": 0.15
+      },
+      "session_id": "BT_20260202_233731_a08d2e01",
+      "sharpe": 1.4348,
+      "return": 0.0183,
+      "drawdown": 0.006,
+      "win_rate": 1.0,
+      "trades": 4
+    }
+  ]
+}

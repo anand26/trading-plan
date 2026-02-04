@@ -1,0 +1,305 @@
+2026-02-02T01:06:31.7376337Z TRACE:: Engine.Main(): LEAN ALGORITHMIC TRADING ENGINE v2.5.0.0 Mode: RELEASE (64bit) Host: WINDOWS-8ROVTQL
+2026-02-02T01:06:31.7521357Z TRACE:: Engine.Main(): Started 8:06 PM
+2026-02-02T01:06:31.7525869Z TRACE:: Config.Get(): Configuration key not found. Key: job-queue-handler - Using default value: QuantConnect.Queues.JobQueue
+2026-02-02T01:06:31.7533904Z TRACE:: Config.Get(): Configuration key not found. Key: api-handler - Using default value: QuantConnect.Api.Api
+2026-02-02T01:06:31.7559468Z TRACE:: Config.Get(): Configuration key not found. Key: messaging-handler - Using default value: QuantConnect.Messaging.Messaging
+2026-02-02T01:06:31.7570011Z TRACE:: Config.Get(): Configuration key not found. Key: lean-manager-type - Using default value: LocalLeanManager
+2026-02-02T01:06:31.7889533Z TRACE:: JobQueue.NextJob(): Selected C:\Users\anand\Documents\trading_plan\quantconnect-lean\Algorithm.Python\TQQQScalpingAlgorithm.py
+2026-02-02T01:06:31.8335680Z TRACE:: Config.GetValue(): scheduled-event-leaky-bucket-capacity - Using default value: 120
+2026-02-02T01:06:31.8336635Z TRACE:: Config.GetValue(): scheduled-event-leaky-bucket-time-interval-minutes - Using default value: 1440
+2026-02-02T01:06:31.8337272Z TRACE:: Config.GetValue(): scheduled-event-leaky-bucket-refill-amount - Using default value: 18
+2026-02-02T01:06:31.8340641Z TRACE:: Config.GetValue(): symbol-minute-limit - Using default value: 10000
+2026-02-02T01:06:31.8341196Z TRACE:: Config.GetValue(): symbol-second-limit - Using default value: 10000
+2026-02-02T01:06:31.8341698Z TRACE:: Config.GetValue(): symbol-tick-limit - Using default value: 10000
+2026-02-02T01:06:31.8342181Z TRACE:: Config.GetValue(): maximum-data-points-per-chart-series - Using default value: 1000000
+2026-02-02T01:06:31.8342702Z TRACE:: Config.GetValue(): maximum-chart-series - Using default value: 30
+2026-02-02T01:06:31.8353957Z TRACE:: Config.GetValue(): storage-limit - Using default value: 10737418240
+2026-02-02T01:06:31.8354675Z TRACE:: Config.GetValue(): storage-file-count - Using default value: 10000
+2026-02-02T01:06:31.8368468Z TRACE:: Config.GetValue(): storage-permissions - Using default value: Read=True Write=True Delete=True
+2026-02-02T01:06:31.8369146Z TRACE:: Config.Get(): Configuration key not found. Key: algorithm-id - Using default value: TQQQScalpingAlgorithm
+2026-02-02T01:06:31.8370443Z TRACE:: Config.Get(): Configuration key not found. Key: optimization-id - Using default value: 
+2026-02-02T01:06:31.8370919Z TRACE:: Config.Get(): Configuration key not found. Key: backtest-name - Using default value: local
+2026-02-02T01:06:31.8405708Z TRACE:: Config.Get(): Configuration key not found. Key: history-provider - Using default value: SubscriptionDataReaderHistoryProvider
+2026-02-02T01:06:31.8408138Z TRACE:: Config.Get(): Configuration key not found. Key: data-channel - Using default value: 
+2026-02-02T01:06:31.8411101Z TRACE:: Config.Get(): Configuration key not found. Key: python-venv - Using default value: 
+2026-02-02T01:06:31.8412340Z TRACE:: Config.Get(): Configuration key not found. Key: out-of-sample-max-end-date - Using default value: 
+2026-02-02T01:06:31.8412767Z TRACE:: Config.GetValue(): out-of-sample-days - Using default value: 0
+2026-02-02T01:06:31.8426939Z TRACE:: Config.Get(): Configuration key not found. Key: map-file-provider - Using default value: LocalDiskMapFileProvider
+2026-02-02T01:06:31.8427573Z TRACE:: Config.Get(): Configuration key not found. Key: factor-file-provider - Using default value: LocalDiskFactorFileProvider
+2026-02-02T01:06:31.8427983Z TRACE:: Config.Get(): Configuration key not found. Key: data-provider - Using default value: DefaultDataProvider
+2026-02-02T01:06:31.8428377Z TRACE:: Config.Get(): Configuration key not found. Key: object-store - Using default value: LocalObjectStore
+2026-02-02T01:06:31.8428771Z TRACE:: Config.Get(): Configuration key not found. Key: data-permission-manager - Using default value: DataPermissionManager
+2026-02-02T01:06:31.8429091Z TRACE:: Config.Get(): Configuration key not found. Key: data-monitor - Using default value: QuantConnect.Data.DataMonitor
+2026-02-02T01:06:31.9093440Z TRACE:: Config.GetValue(): initialization-timeout - Using default value: 300
+2026-02-02T01:06:31.9094884Z TRACE:: Config.GetValue(): algorithm-creation-timeout - Using default value: 90
+2026-02-02T01:06:31.9664103Z TRACE:: Config.GetValue(): zip-data-cache-provider - Using default value: 10
+2026-02-02T01:06:31.9679306Z TRACE:: Config.Get(): Configuration key not found. Key: fundamental-data-provider - Using default value: CoarseFundamentalDataProvider
+2026-02-02T01:06:31.9718226Z TRACE:: AlgorithmManager.CreateTokenBucket(): Initializing LeakyBucket: Capacity: 120 RefillAmount: 18 TimeInterval: 1440
+2026-02-02T01:06:31.9726025Z TRACE:: Config.GetValue(): algorithm-manager-time-loop-maximum - Using default value: 20
+2026-02-02T01:06:31.9887309Z TRACE:: Engine.Run(): Resource limits '0' CPUs. 2147483647 MB RAM.
+2026-02-02T01:06:31.9908550Z TRACE:: TextSubscriptionDataSourceReader.SetCacheSize(): Setting cache size to 71582788 items
+2026-02-02T01:06:31.9971837Z TRACE:: Config.GetValue(): downloader-data-update-period - Using default value: 7
+2026-02-02T01:06:32.9080478Z TRACE:: Config.GetValue(): force-exchange-always-open - Using default value: False
+2026-02-02T01:06:32.9086115Z TRACE:: Config.GetValue(): debugging - Using default value: False
+2026-02-02T01:06:32.9104504Z TRACE:: PythonInitializer.Initialize(): start...
+2026-02-02T01:06:33.1356488Z TRACE:: Config.GetValue(): python-additional-paths - Using default value: System.String[]
+2026-02-02T01:06:33.1785120Z TRACE:: PythonInitializer.Initialize(): ended
+2026-02-02T01:06:33.1796650Z TRACE:: AlgorithmPythonWrapper(): Python version 3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]: Importing python module TQQQScalpingAlgorithm
+2026-02-02T01:06:35.8540694Z TRACE:: AlgorithmPythonWrapper(): TQQQScalpingAlgorithm successfully imported.
+2026-02-02T01:06:35.8777326Z TRACE:: AlgorithmPythonWrapper(): Creating IAlgorithm instance.
+2026-02-02T01:06:35.8894132Z TRACE:: Config.Get(): Configuration key not found. Key: databases-refresh-period - Using default value: 1.00:00:00
+2026-02-02T01:06:35.8905550Z TRACE:: Config.GetValue(): ignore-unknown-asset-holdings - Using default value: True
+2026-02-02T01:06:36.0345426Z TRACE:: Config.GetValue(): mute-python-library-logging - Using default value: True
+2026-02-02T01:06:36.0358640Z TRACE:: Config.Get(): Configuration key not found. Key: object-store-root - Using default value: ./storage
+2026-02-02T01:06:36.0386548Z TRACE:: LocalObjectStore.Initialize(): Storage Root: C:\Users\anand\Documents\trading_plan\quantconnect-lean\Launcher\storage. StorageFileCount 10000. StorageLimit 10240MB. StoragePermissions Read=True Write=True Delete=True
+2026-02-02T01:06:36.0452914Z TRACE:: Config.GetValue(): zip-data-cache-provider - Using default value: 10
+2026-02-02T01:06:36.0529796Z TRACE:: HistoryProviderManager.Initialize(): history providers [SubscriptionDataReaderHistoryProvider]
+2026-02-02T01:06:36.0575231Z TRACE:: BaseSetupHandler.Setup(LocalPlatform): UID: 0, PID: 0, Version: 2.5.0.0, Source: WebIDE
+2026-02-02T01:06:36.0606919Z TRACE:: Config.Get(): Configuration key not found. Key: security-data-feeds - Using default value: 
+2026-02-02T01:06:36.1008625Z TRACE:: Config.Get(): Configuration key not found. Key: reserved-words-prefix - Using default value: @
+2026-02-02T01:06:36.2088898Z TRACE:: Event Name "TQQQ: EveryDay: 15.83", scheduled to run.
+2026-02-02T01:06:36.2138528Z TRACE:: Event Name "TQQQ: EveryDay: TQQQ: 5 min after MarketOpen", scheduled to run.
+2026-02-02T01:06:36.3012179Z TRACE:: Config.GetValue(): data-feed-workers-count - Using default value: 8
+2026-02-02T01:06:36.3016562Z TRACE:: Config.GetValue(): data-feed-max-work-weight - Using default value: 400
+2026-02-02T01:06:36.3016931Z TRACE:: WeightedWorkScheduler(): will use 8 workers and MaxWorkWeight is 400
+2026-02-02T01:06:36.3097710Z TRACE:: Config.GetValue(): seed-lookback-period - Using default value: 5
+2026-02-02T01:06:36.3098714Z TRACE:: Config.GetValue(): seed-retry-minute-lookback-period - Using default value: 1440
+2026-02-02T01:06:36.3098944Z TRACE:: Config.GetValue(): seed-retry-hour-lookback-period - Using default value: 24
+2026-02-02T01:06:36.3099103Z TRACE:: Config.GetValue(): seed-retry-daily-lookback-period - Using default value: 10
+2026-02-02T01:06:36.3156274Z TRACE:: BaseSetupHandler.SetupCurrencyConversions():
+Account Type: Margin
+
+Symbol      Quantity    Conversion = Value in USD
+USD: $      100000.00 @       1.00 = $100000
+-------------------------------------------------
+CashBook Total Value:                $100000
+
+2026-02-02T01:06:36.3179472Z TRACE:: Total margin information: TotalMarginUsed: 0.00, MarginRemaining: 100000.00
+2026-02-02T01:06:36.3183495Z TRACE:: SetUp Backtesting: User: 0 ProjectId: 0 AlgoId: TQQQScalpingAlgorithm
+2026-02-02T01:06:36.3215054Z TRACE:: Dates: Start: 01/02/2026 End: 01/13/2026 Cash: ¤100,000.00 MaximumRuntime: 100.00:00:00 MaxOrders: 2147483647
+2026-02-02T01:06:36.3255162Z TRACE:: BacktestingResultHandler(): Sample Period Set: 04.32
+2026-02-02T01:06:36.3257902Z TRACE:: Config.GetValue(): forward-console-messages - Using default value: True
+2026-02-02T01:06:36.3259697Z TRACE:: JOB HANDLERS:
+         DataFeed:             QuantConnect.Lean.Engine.DataFeeds.FileSystemDataFeed
+         Setup:                QuantConnect.Lean.Engine.Setup.BacktestingSetupHandler
+         RealTime:             QuantConnect.Lean.Engine.RealTime.BacktestingRealTimeHandler
+         Results:              QuantConnect.Lean.Engine.Results.BacktestingResultHandler
+         Transactions:         QuantConnect.Lean.Engine.TransactionHandlers.BacktestingTransactionHandler
+         Object Store:         QuantConnect.Lean.Engine.Storage.LocalObjectStore
+         History Provider:     QuantConnect.Lean.Engine.HistoricalData.HistoryProviderManager
+         Brokerage:            QuantConnect.Brokerages.Backtesting.BacktestingBrokerage
+         Data Provider:        QuantConnect.Lean.Engine.DataFeeds.DefaultDataProvider
+
+2026-02-02T01:06:36.3522250Z TRACE:: Event Name "Daily Sampling", scheduled to run.
+2026-02-02T01:06:36.3535657Z TRACE:: AlgorithmManager.Run(): Begin DataStream - Start: 1/2/2026 12:00:00 AM Stop: 1/13/2026 11:59:59 PM Time: 1/2/2026 12:00:00 AM Warmup: True
+2026-02-02T01:06:36.3646440Z TRACE:: Debug: Launching analysis for TQQQScalpingAlgorithm with LEAN Engine v2.5.0.0
+2026-02-02T01:06:36.4027732Z TRACE:: Config.GetValue(): show-missing-data-logs - Using default value: False
+2026-02-02T01:06:36.4480036Z TRACE:: UniverseSelection.AddPendingInternalDataFeeds(): Adding internal benchmark data feed SPY,#0,SPY,Hour,TradeBar,Trade,Adjusted,OpenInterest,Internal
+2026-02-02T01:06:36.7933632Z TRACE:: AlgorithmManager.Stream(): Subscriptions count before warm up: 6
+2026-02-02T01:06:36.8658861Z TRACE:: AlgorithmManager.Stream(): Subscriptions count after warm up: 6
+2026-02-02T01:06:36.9126653Z TRACE:: Debug: 2026-01-02 00:00:00 Warmup period set to 0 days
+2026-02-02T01:06:36.9127109Z TRACE:: Debug: 2026-01-02 00:00:00 [SQL] Connected to TradingDB
+2026-02-02T01:06:36.9127284Z TRACE:: Debug: 2026-01-02 00:00:00 [SQL] Started session: BT_20260201_200628_6bd4b021
+2026-02-02T01:06:36.9127415Z TRACE:: Debug: 2026-01-02 00:00:00 [SQL] Session started: BT_20260201_200628_6bd4b021
+2026-02-02T01:06:36.9127538Z TRACE:: Debug: 2026-01-02 00:00:00 TQQQScalpingAlgorithm Initialized
+2026-02-02T01:06:36.9127663Z TRACE:: Debug: 2026-01-02 00:00:00 Parameters: RSI=13, BB=28/2.1
+2026-02-02T01:06:36.9127822Z TRACE:: Debug: 2026-01-02 00:00:00 Position Sizing: L1=0.42, L2=0.39, L3=0.2
+2026-02-02T01:06:36.9127974Z TRACE:: Debug: 2026-01-02 00:00:00 SQL Persistence: Enabled
+2026-02-02T01:06:36.9128111Z TRACE:: Debug: 2026-01-02 00:00:00 Algorithm starting warm up...
+2026-02-02T01:06:36.9129937Z TRACE:: Log: 2026-01-02 00:00:00 [PARAMS] RSI Oversold: 30.7, RSI Overbought: 70.4
+2026-02-02T01:06:36.9130221Z TRACE:: Log: 2026-01-02 00:00:00 [PARAMS] BB Std Dev: 2.1, Stop Loss: 0.017, Take Profit: 0.04
+2026-02-02T01:06:36.9130443Z TRACE:: Log: 2026-01-02 00:00:00 [PARAMS] RSI Period: 13, BB Period: 28
+2026-02-02T01:06:36.9130611Z TRACE:: Log: 2026-01-02 00:00:00 [PARAMS] EMA Fast: 8, EMA Slow: 17
+2026-02-02T01:06:36.9131271Z TRACE:: Log: 2026-01-02 00:00:00 [PARAMS] Position Sizes: L1=0.42, L2=0.39, L3=0.2
+2026-02-02T01:06:36.9131510Z TRACE:: Log: 2026-01-02 00:00:00 [WEBHOOK] Simulation enabled - logging to C:\Users\anand\Documents\trading_plan\backtest\results\BT_20260201_200628_6bd4b021\webhook_log.txt
+2026-02-02T01:06:36.9131676Z TRACE:: Debug: 2026-01-02 00:00:00 Algorithm finished warming up.
+2026-02-02T01:06:36.9131815Z TRACE:: Debug: 2026-01-02 09:35:00 Daily state reset at 2026-01-02 09:35:00
+2026-02-02T01:06:36.9656242Z TRACE:: Debug: 2026-01-02 10:00:00 2026-01-02 10:00:00 Indicators NOT ready - EMA_fast: False, EMA_slow: False, RSI: False, BB: False
+2026-02-02T01:06:36.9656834Z TRACE:: Debug: 2026-01-02 10:55:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-02-02T01:06:36.9657056Z TRACE:: Debug: 2026-01-02 10:55:00 [REGIME] Changed to mean_reverting (strength: 0.0000)
+2026-02-02T01:06:36.9657265Z TRACE:: Debug: 2026-01-02 11:00:00 2026-01-02 11:00:00 Indicators NOT ready - EMA_fast: True, EMA_slow: True, RSI: True, BB: False
+2026-02-02T01:06:37.0199860Z TRACE:: Debug: 2026-01-02 12:00:00 2026-01-02 12:00:00 Regime: mean_reverting, RSI: 47.6, Oversold: 30.7
+2026-02-02T01:06:37.0844404Z TRACE:: Debug: 2026-01-02 12:10:00 [ORDER FILLED] 2026-01-02 12:10:00 | TQQQ | BUY | Price=54.21 | Qty=772.0
+2026-02-02T01:06:37.0844899Z TRACE:: Debug: 2026-01-02 12:10:00 [TRADE] 2026-01-02 12:10:00 | TQQQ | ENTRY_L1 | Price=54.21 | Qty=775 | P&L=0.00% | RSI=29.2, BB_Middle=54.40
+2026-02-02T01:06:37.1443279Z TRACE:: Debug: 2026-01-02 13:00:00 2026-01-02 13:00:00 Regime: mean_reverting, RSI: 44.8, Oversold: 30.7
+2026-02-02T01:06:37.1443961Z TRACE:: Debug: 2026-01-02 14:00:00 2026-01-02 14:00:00 Regime: mean_reverting, RSI: 43.0, Oversold: 30.7
+2026-02-02T01:06:37.2088641Z TRACE:: Debug: 2026-01-02 14:50:00 [ORDER FILLED] 2026-01-02 14:50:00 | TQQQ | SELL | Price=54.58 | Qty=-772.0
+2026-02-02T01:06:37.2089202Z TRACE:: Debug: 2026-01-02 14:50:00 [TRADE] 2026-01-02 14:50:00 | TQQQ | EXIT | Price=54.58 | Qty=772 | P&L=0.68% | RSI reversal + above VWAP (profit: 0.68%)
+2026-02-02T01:06:37.2089480Z TRACE:: Debug: 2026-01-02 14:50:00 [SQL] Trade logged: TQQQ BUY PnL=$286.66
+2026-02-02T01:06:37.2089646Z TRACE:: Debug: 2026-01-02 15:00:00 2026-01-02 15:00:00 Regime: mean_reverting, RSI: 58.9, Oversold: 30.7
+2026-02-02T01:06:37.2089798Z TRACE:: Debug: 2026-01-02 15:20:00 [ORDER FILLED] 2026-01-02 15:20:00 | TQQQ | BUY | Price=53.48 | Qty=785.0
+2026-02-02T01:06:37.2089944Z TRACE:: Debug: 2026-01-02 15:20:00 [TRADE] 2026-01-02 15:20:00 | TQQQ | ENTRY_L1 | Price=53.48 | Qty=788 | P&L=0.00% | RSI=29.0, BB_Middle=54.19
+2026-02-02T01:06:37.2090098Z TRACE:: Debug: 2026-01-02 15:25:00 [SQL] Market regime: QQQ → TRENDING_DOWN
+2026-02-02T01:06:37.2090249Z TRACE:: Debug: 2026-01-02 15:25:00 [REGIME] Changed to trending_down (strength: -0.0013)
+2026-02-02T01:06:37.2090402Z TRACE:: Debug: 2026-01-02 15:50:00 [ORDER FILLED] 2026-01-02 15:50:00 | TQQQ | SELL | Price=53.20 | Qty=-785.0
+2026-02-02T01:06:37.2090573Z TRACE:: Debug: 2026-01-02 15:50:00 EOD Close - TQQQ: Avg Price=53.48, Entries=1
+2026-02-02T01:06:37.2090732Z TRACE:: Debug: 2026-01-02 15:50:00 [SQL] Trade logged: TQQQ BUY PnL=$-220.52
+2026-02-02T01:06:37.2090890Z TRACE:: Debug: 2026-01-02 15:50:00 All positions closed at 2026-01-02 15:50:00. Daily trades: 2
+2026-02-02T01:06:37.2707132Z TRACE:: Debug: 2026-01-05 09:35:00 Daily state reset at 2026-01-05 09:35:00
+2026-02-02T01:06:37.2709268Z TRACE:: Debug: 2026-01-05 10:00:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-02-02T01:06:37.2709632Z TRACE:: Debug: 2026-01-05 10:00:00 [REGIME] Changed to mean_reverting (strength: -0.0010)
+2026-02-02T01:06:37.2709791Z TRACE:: Debug: 2026-01-05 10:00:00 2026-01-05 10:00:00 Regime: mean_reverting, RSI: 43.4, Oversold: 30.7
+2026-02-02T01:06:37.2709938Z TRACE:: Debug: 2026-01-05 11:00:00 2026-01-05 11:00:00 Regime: mean_reverting, RSI: 50.9, Oversold: 30.7
+2026-02-02T01:06:37.3322893Z TRACE:: Debug: 2026-01-05 12:00:00 2026-01-05 12:00:00 Regime: mean_reverting, RSI: 54.2, Oversold: 30.7
+2026-02-02T01:06:37.3323491Z TRACE:: Debug: 2026-01-05 13:00:00 2026-01-05 13:00:00 Regime: mean_reverting, RSI: 47.1, Oversold: 30.7
+2026-02-02T01:06:37.3323700Z TRACE:: Debug: 2026-01-05 14:00:00 2026-01-05 14:00:00 Regime: mean_reverting, RSI: 57.3, Oversold: 30.7
+2026-02-02T01:06:37.3936682Z TRACE:: Debug: 2026-01-05 15:00:00 2026-01-05 15:00:00 Regime: mean_reverting, RSI: 52.1, Oversold: 30.7
+2026-02-02T01:06:37.3937278Z TRACE:: Debug: 2026-01-05 15:50:00 All positions closed at 2026-01-05 15:50:00. Daily trades: 0
+2026-02-02T01:06:37.3937493Z TRACE:: Debug: 2026-01-06 09:35:00 Daily state reset at 2026-01-06 09:35:00
+2026-02-02T01:06:37.3937658Z TRACE:: Debug: 2026-01-06 10:00:00 2026-01-06 10:00:00 Regime: mean_reverting, RSI: 43.8, Oversold: 30.7
+2026-02-02T01:06:37.4560594Z TRACE:: Debug: 2026-01-06 11:00:00 2026-01-06 11:00:00 Regime: mean_reverting, RSI: 48.6, Oversold: 30.7
+2026-02-02T01:06:37.4561110Z TRACE:: Debug: 2026-01-06 12:00:00 2026-01-06 12:00:00 Regime: mean_reverting, RSI: 51.1, Oversold: 30.7
+2026-02-02T01:06:37.4561347Z TRACE:: Debug: 2026-01-06 13:00:00 2026-01-06 13:00:00 Regime: mean_reverting, RSI: 72.6, Oversold: 30.7
+2026-02-02T01:06:37.4561517Z TRACE:: Debug: 2026-01-06 14:00:00 2026-01-06 14:00:00 Regime: mean_reverting, RSI: 47.7, Oversold: 30.7
+2026-02-02T01:06:37.5168507Z TRACE:: Debug: 2026-01-06 15:00:00 [SQL] Market regime: QQQ → TRENDING_UP
+2026-02-02T01:06:37.5169181Z TRACE:: Debug: 2026-01-06 15:00:00 [REGIME] Changed to trending_up (strength: 0.0011)
+2026-02-02T01:06:37.5169417Z TRACE:: Debug: 2026-01-06 15:00:00 2026-01-06 15:00:00 Regime: trending_up, RSI: 83.4, Oversold: 30.7
+2026-02-02T01:06:37.5169582Z TRACE:: Debug: 2026-01-06 15:45:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-02-02T01:06:37.5169729Z TRACE:: Debug: 2026-01-06 15:45:00 [REGIME] Changed to mean_reverting (strength: 0.0008)
+2026-02-02T01:06:37.5169881Z TRACE:: Debug: 2026-01-06 15:50:00 All positions closed at 2026-01-06 15:50:00. Daily trades: 0
+2026-02-02T01:06:37.5170026Z TRACE:: Debug: 2026-01-07 09:35:00 Daily state reset at 2026-01-07 09:35:00
+2026-02-02T01:06:37.5170166Z TRACE:: Debug: 2026-01-07 10:00:00 2026-01-07 10:00:00 Regime: mean_reverting, RSI: 60.8, Oversold: 30.7
+2026-02-02T01:06:37.5806093Z TRACE:: Debug: 2026-01-07 11:00:00 2026-01-07 11:00:00 Regime: mean_reverting, RSI: 52.9, Oversold: 30.7
+2026-02-02T01:06:37.5806807Z TRACE:: Debug: 2026-01-07 12:00:00 2026-01-07 12:00:00 Regime: mean_reverting, RSI: 64.5, Oversold: 30.7
+2026-02-02T01:06:37.5807037Z TRACE:: Debug: 2026-01-07 13:00:00 2026-01-07 13:00:00 Regime: mean_reverting, RSI: 54.7, Oversold: 30.7
+2026-02-02T01:06:37.5807261Z TRACE:: Debug: 2026-01-07 14:00:00 2026-01-07 14:00:00 Regime: mean_reverting, RSI: 65.7, Oversold: 30.7
+2026-02-02T01:06:37.5807426Z TRACE:: Debug: 2026-01-07 15:00:00 2026-01-07 15:00:00 Regime: mean_reverting, RSI: 77.0, Oversold: 30.7
+2026-02-02T01:06:37.6443562Z TRACE:: Debug: 2026-01-07 15:50:00 All positions closed at 2026-01-07 15:50:00. Daily trades: 0
+2026-02-02T01:06:37.6444093Z TRACE:: Debug: 2026-01-08 09:35:00 Daily state reset at 2026-01-08 09:35:00
+2026-02-02T01:06:37.6445351Z TRACE:: Debug: 2026-01-08 10:00:00 2026-01-08 10:00:00 Regime: mean_reverting, RSI: 37.1, Oversold: 30.7
+2026-02-02T01:06:37.7058159Z TRACE:: Debug: 2026-01-08 11:00:00 2026-01-08 11:00:00 Regime: mean_reverting, RSI: 46.9, Oversold: 30.7
+2026-02-02T01:06:37.7058945Z TRACE:: Debug: 2026-01-08 12:00:00 2026-01-08 12:00:00 Regime: mean_reverting, RSI: 47.8, Oversold: 30.7
+2026-02-02T01:06:37.7059172Z TRACE:: Debug: 2026-01-08 13:00:00 2026-01-08 13:00:00 Regime: mean_reverting, RSI: 49.1, Oversold: 30.7
+2026-02-02T01:06:37.7059362Z TRACE:: Debug: 2026-01-08 14:00:00 2026-01-08 14:00:00 Regime: mean_reverting, RSI: 62.0, Oversold: 30.7
+2026-02-02T01:06:37.7060508Z TRACE:: Debug: 2026-01-08 14:35:00 [ORDER FILLED] 2026-01-08 14:35:00 | TQQQ | BUY | Price=54.38 | Qty=770.0
+2026-02-02T01:06:37.7060741Z TRACE:: Debug: 2026-01-08 14:35:00 [TRADE] 2026-01-08 14:35:00 | TQQQ | ENTRY_L1 | Price=54.38 | Qty=773 | P&L=0.00% | RSI=24.2, BB_Middle=54.84
+2026-02-02T01:06:37.7060905Z TRACE:: Debug: 2026-01-08 14:45:00 [SQL] Market regime: QQQ → TRENDING_DOWN
+2026-02-02T01:06:37.7061057Z TRACE:: Debug: 2026-01-08 14:45:00 [REGIME] Changed to trending_down (strength: -0.0012)
+2026-02-02T01:06:37.7061200Z TRACE:: Debug: 2026-01-08 15:00:00 2026-01-08 15:00:00 Regime: trending_down, RSI: 20.8, Oversold: 30.7
+2026-02-02T01:06:37.7579979Z TRACE:: Debug: 2026-01-08 15:25:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-02-02T01:06:37.7580440Z TRACE:: Debug: 2026-01-08 15:25:00 [REGIME] Changed to mean_reverting (strength: -0.0008)
+2026-02-02T01:06:37.7580666Z TRACE:: Debug: 2026-01-08 15:50:00 [ORDER FILLED] 2026-01-08 15:50:00 | TQQQ | SELL | Price=54.03 | Qty=-770.0
+2026-02-02T01:06:37.7580821Z TRACE:: Debug: 2026-01-08 15:50:00 EOD Close - TQQQ: Avg Price=54.38, Entries=1
+2026-02-02T01:06:37.7580954Z TRACE:: Debug: 2026-01-08 15:50:00 [SQL] Trade logged: TQQQ BUY PnL=$-266.66
+2026-02-02T01:06:37.7581156Z TRACE:: Debug: 2026-01-08 15:50:00 All positions closed at 2026-01-08 15:50:00. Daily trades: 1
+2026-02-02T01:06:37.7581239Z TRACE:: Debug: 2026-01-09 09:35:00 Daily state reset at 2026-01-09 09:35:00
+2026-02-02T01:06:37.7581342Z TRACE:: Debug: 2026-01-09 10:00:00 2026-01-09 10:00:00 Regime: mean_reverting, RSI: 54.1, Oversold: 30.7
+2026-02-02T01:06:37.7581453Z TRACE:: Debug: 2026-01-09 11:00:00 2026-01-09 11:00:00 Regime: mean_reverting, RSI: 56.1, Oversold: 30.7
+2026-02-02T01:06:37.8189893Z TRACE:: Debug: 2026-01-09 12:00:00 2026-01-09 12:00:00 Regime: mean_reverting, RSI: 53.9, Oversold: 30.7
+2026-02-02T01:06:37.8190344Z TRACE:: Debug: 2026-01-09 13:00:00 2026-01-09 13:00:00 Regime: mean_reverting, RSI: 57.7, Oversold: 30.7
+2026-02-02T01:06:37.8191176Z TRACE:: Debug: 2026-01-09 14:00:00 2026-01-09 14:00:00 Regime: mean_reverting, RSI: 72.7, Oversold: 30.7
+2026-02-02T01:06:37.8191429Z TRACE:: Debug: 2026-01-09 14:35:00 [ORDER FILLED] 2026-01-09 14:35:00 | TQQQ | BUY | Price=54.16 | Qty=771.0
+2026-02-02T01:06:37.8191687Z TRACE:: Debug: 2026-01-09 14:35:00 [TRADE] 2026-01-09 14:35:00 | TQQQ | ENTRY_L1 | Price=54.16 | Qty=774 | P&L=0.00% | RSI=27.0, BB_Middle=54.63
+2026-02-02T01:06:37.8191842Z TRACE:: Debug: 2026-01-09 14:40:00 [ORDER FILLED] 2026-01-09 14:40:00 | TQQQ | SELL | Price=54.68 | Qty=-771.0
+2026-02-02T01:06:37.8192369Z TRACE:: Debug: 2026-01-09 14:40:00 [TRADE] 2026-01-09 14:40:00 | TQQQ | EXIT | Price=54.68 | Qty=771 | P&L=0.96% | RSI reversal + above VWAP (profit: 0.96%)
+2026-02-02T01:06:37.8192613Z TRACE:: Debug: 2026-01-09 14:40:00 [SQL] Trade logged: TQQQ BUY PnL=$402.44
+2026-02-02T01:06:37.8192761Z TRACE:: Debug: 2026-01-09 15:00:00 2026-01-09 15:00:00 Regime: mean_reverting, RSI: 46.8, Oversold: 30.7
+2026-02-02T01:06:37.8192896Z TRACE:: Debug: 2026-01-09 15:40:00 [SQL] Market regime: QQQ → TRENDING_UP
+2026-02-02T01:06:37.8193020Z TRACE:: Debug: 2026-01-09 15:40:00 [REGIME] Changed to trending_up (strength: 0.0010)
+2026-02-02T01:06:37.8809247Z TRACE:: Debug: 2026-01-09 15:45:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-02-02T01:06:37.8809584Z TRACE:: Debug: 2026-01-09 15:45:00 [REGIME] Changed to mean_reverting (strength: 0.0008)
+2026-02-02T01:06:37.8809825Z TRACE:: Debug: 2026-01-09 15:50:00 All positions closed at 2026-01-09 15:50:00. Daily trades: 1
+2026-02-02T01:06:37.8809915Z TRACE:: Debug: 2026-01-12 09:35:00 Daily state reset at 2026-01-12 09:35:00
+2026-02-02T01:06:37.8809988Z TRACE:: Debug: 2026-01-12 10:00:00 2026-01-12 10:00:00 Regime: mean_reverting, RSI: 43.4, Oversold: 30.7
+2026-02-02T01:06:37.8810062Z TRACE:: Debug: 2026-01-12 11:00:00 2026-01-12 11:00:00 Regime: mean_reverting, RSI: 45.3, Oversold: 30.7
+2026-02-02T01:06:37.8810133Z TRACE:: Debug: 2026-01-12 12:00:00 2026-01-12 12:00:00 Regime: mean_reverting, RSI: 48.8, Oversold: 30.7
+2026-02-02T01:06:37.8810282Z TRACE:: Debug: 2026-01-12 13:00:00 2026-01-12 13:00:00 Regime: mean_reverting, RSI: 63.3, Oversold: 30.7
+2026-02-02T01:06:37.8810382Z TRACE:: Debug: 2026-01-12 14:00:00 2026-01-12 14:00:00 Regime: mean_reverting, RSI: 53.5, Oversold: 30.7
+2026-02-02T01:06:37.9323197Z TRACE:: Debug: 2026-01-12 14:45:00 [SQL] Market regime: QQQ → TRENDING_UP
+2026-02-02T01:06:37.9323699Z TRACE:: Debug: 2026-01-12 14:45:00 [REGIME] Changed to trending_up (strength: 0.0011)
+2026-02-02T01:06:37.9324092Z TRACE:: Debug: 2026-01-12 15:00:00 2026-01-12 15:00:00 Regime: trending_up, RSI: 77.1, Oversold: 30.7
+2026-02-02T01:06:37.9324248Z TRACE:: Debug: 2026-01-12 15:45:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-02-02T01:06:37.9324332Z TRACE:: Debug: 2026-01-12 15:45:00 [REGIME] Changed to mean_reverting (strength: 0.0010)
+2026-02-02T01:06:37.9324404Z TRACE:: Debug: 2026-01-12 15:50:00 All positions closed at 2026-01-12 15:50:00. Daily trades: 0
+2026-02-02T01:06:37.9324473Z TRACE:: Debug: 2026-01-13 09:35:00 Daily state reset at 2026-01-13 09:35:00
+2026-02-02T01:06:37.9324541Z TRACE:: Debug: 2026-01-13 10:00:00 2026-01-13 10:00:00 Regime: mean_reverting, RSI: 61.8, Oversold: 30.7
+2026-02-02T01:06:37.9324609Z TRACE:: Debug: 2026-01-13 11:00:00 2026-01-13 11:00:00 Regime: mean_reverting, RSI: 48.2, Oversold: 30.7
+2026-02-02T01:06:37.9324692Z TRACE:: Debug: 2026-01-13 12:00:00 2026-01-13 12:00:00 Regime: mean_reverting, RSI: 58.4, Oversold: 30.7
+2026-02-02T01:06:37.9949698Z TRACE:: Debug: 2026-01-13 13:00:00 2026-01-13 13:00:00 Regime: mean_reverting, RSI: 45.1, Oversold: 30.7
+2026-02-02T01:06:37.9950230Z TRACE:: Debug: 2026-01-13 14:00:00 2026-01-13 14:00:00 Regime: mean_reverting, RSI: 62.3, Oversold: 30.7
+2026-02-02T01:06:37.9950525Z TRACE:: Debug: 2026-01-13 15:00:00 2026-01-13 15:00:00 Regime: mean_reverting, RSI: 47.6, Oversold: 30.7
+2026-02-02T01:06:37.9950654Z TRACE:: Debug: 2026-01-13 15:25:00 [ORDER FILLED] 2026-01-13 15:25:00 | TQQQ | BUY | Price=55.18 | Qty=760.0
+2026-02-02T01:06:37.9950774Z TRACE:: Debug: 2026-01-13 15:25:00 [TRADE] 2026-01-13 15:25:00 | TQQQ | ENTRY_L1 | Price=55.18 | Qty=763 | P&L=0.00% | RSI=27.3, BB_Middle=55.90
+2026-02-02T01:06:37.9951245Z TRACE:: Debug: 2026-01-13 15:30:00 [SQL] Market regime: QQQ → TRENDING_DOWN
+2026-02-02T01:06:37.9951533Z TRACE:: Debug: 2026-01-13 15:30:00 [REGIME] Changed to trending_down (strength: -0.0011)
+2026-02-02T01:06:37.9951768Z TRACE:: Debug: 2026-01-13 15:50:00 [ORDER FILLED] 2026-01-13 15:50:00 | TQQQ | SELL | Price=55.04 | Qty=-760.0
+2026-02-02T01:06:37.9951996Z TRACE:: Debug: 2026-01-13 15:50:00 EOD Close - TQQQ: Avg Price=55.18, Entries=1
+2026-02-02T01:06:37.9952139Z TRACE:: Debug: 2026-01-13 15:50:00 [SQL] Trade logged: TQQQ BUY PnL=$-106.77
+2026-02-02T01:06:37.9952269Z TRACE:: Debug: 2026-01-13 15:50:00 All positions closed at 2026-01-13 15:50:00. Daily trades: 1
+2026-02-02T01:06:38.0031061Z TRACE:: Synchronizer.GetEnumerator(): Exited thread.
+2026-02-02T01:06:38.0037102Z TRACE:: AlgorithmManager.Run(): Firing On End Of Algorithm...
+2026-02-02T01:06:38.0113950Z TRACE:: Engine.Run(): Exiting Algorithm Manager
+2026-02-02T01:06:38.0175840Z TRACE:: StopSafely(): Waiting for 'Isolator Thread' thread to stop...
+2026-02-02T01:06:38.0186280Z TRACE:: FileSystemDataFeed.Exit(): Start. Setting cancellation token...
+2026-02-02T01:06:38.0202281Z TRACE:: FileSystemDataFeed.Exit(): Exit Finished.
+2026-02-02T01:06:38.0204568Z TRACE:: BacktestingResultHandler.Exit(): starting...
+2026-02-02T01:06:38.0216224Z TRACE:: BacktestingResultHandler.Exit(): Saving logs...
+2026-02-02T01:06:38.0235850Z TRACE:: Debug: 2026-01-13 16:00:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-02-02T01:06:38.0236126Z TRACE:: Debug: 2026-01-13 16:00:00 [REGIME] Changed to mean_reverting (strength: -0.0008)
+2026-02-02T01:06:38.0236220Z TRACE:: Debug: 2026-01-13 16:00:00 ============================================================
+2026-02-02T01:06:38.0236288Z TRACE:: Debug: 2026-01-13 16:00:00 ALGORITHM COMPLETED
+2026-02-02T01:06:38.0236427Z TRACE:: Debug: 2026-01-13 16:00:00 Final Portfolio Value: $100,094.71
+2026-02-02T01:06:38.0236559Z TRACE:: Debug: 2026-01-13 16:00:00 Total Return: 0.09%
+2026-02-02T01:06:38.0236678Z TRACE:: Debug: 2026-01-13 16:00:00 ============================================================
+2026-02-02T01:06:38.0236672Z TRACE:: StopSafely(): Waiting for 'Result Thread' thread to stop...
+2026-02-02T01:06:38.0236778Z TRACE:: Debug: 2026-01-13 16:00:00 [SQL] Flushed 10 orders
+2026-02-02T01:06:38.0238101Z TRACE:: Debug: 2026-01-13 16:00:00 [SQL] Ended session: BT_20260201_200628_6bd4b021
+2026-02-02T01:06:38.0238213Z TRACE:: Debug: 2026-01-13 16:00:00 [SQL] Disconnected from TradingDB
+2026-02-02T01:06:38.0238319Z TRACE:: Debug: 2026-01-13 16:00:00 [SQL] Session ended: BT_20260201_200628_6bd4b021
+2026-02-02T01:06:38.0238519Z TRACE:: Debug: 2026-01-13 16:00:00 [SQL] Data available for Trade-Mind MCP queries
+2026-02-02T01:06:38.0238595Z TRACE:: Debug: 2026-01-13 16:00:00 [WEBHOOK] Simulation Summary:
+2026-02-02T01:06:38.0238693Z TRACE:: Debug: 2026-01-13 16:00:00   Total webhooks fired: 7
+2026-02-02T01:06:38.0238773Z TRACE:: Debug: 2026-01-13 16:00:00   Scheduled: 0
+2026-02-02T01:06:38.0238855Z TRACE:: Debug: 2026-01-13 16:00:00   Signals: 7
+2026-02-02T01:06:38.0238936Z TRACE:: Debug: 2026-01-13 16:00:00   Alerts: 0
+2026-02-02T01:06:38.0239023Z TRACE:: Debug: 2026-01-13 16:00:00   Status: 0
+2026-02-02T01:06:38.0239102Z TRACE:: Debug: 2026-01-13 16:00:00   Webhook log: See results folder
+2026-02-02T01:06:38.0239193Z TRACE:: Debug: Algorithm Id:(TQQQScalpingAlgorithm) completed in 1.69 seconds at 6k data points per second. Processing total of 9,361 data points.
+2026-02-02T01:06:38.0239268Z TRACE:: Debug: Your log was successfully created and can be retrieved from: C:\Users\anand\Documents\trading_plan\backtest\results\BT_20260201_200628_6bd4b021\TQQQScalpingAlgorithm-log.txt
+2026-02-02T01:06:38.0239469Z TRACE:: BacktestingResultHandler.Run(): Ending Thread...
+2026-02-02T01:06:38.2545479Z TRACE:: 
+STATISTICS:: Total Orders 10
+STATISTICS:: Average Win 0.34%
+STATISTICS:: Average Loss -0.20%
+STATISTICS:: Compounding Annual Return 3.006%
+STATISTICS:: Drawdown 0.800%
+STATISTICS:: Expectancy 0.098
+STATISTICS:: Start Equity 100000
+STATISTICS:: End Equity 100094.71
+STATISTICS:: Net Profit 0.095%
+STATISTICS:: Sharpe Ratio -1.943
+STATISTICS:: Sortino Ratio -2.69
+STATISTICS:: Probabilistic Sharpe Ratio 44.215%
+STATISTICS:: Loss Rate 60%
+STATISTICS:: Win Rate 40%
+STATISTICS:: Profit-Loss Ratio 1.75
+STATISTICS:: Alpha 0
+STATISTICS:: Beta 0
+STATISTICS:: Annual Standard Deviation 0.025
+STATISTICS:: Annual Variance 0.001
+STATISTICS:: Information Ratio 0.279
+STATISTICS:: Tracking Error 0.025
+STATISTICS:: Treynor Ratio 0
+STATISTICS:: Total Fees $0.00
+STATISTICS:: Estimated Strategy Capacity $1400000.00
+STATISTICS:: Lowest Capacity Asset TQQQ 2T
+STATISTICS:: Portfolio Turnover 34.89%
+STATISTICS:: Drawdown Recovery 10
+STATISTICS:: OrderListHash 5d34d3e7defaca298529a7e0b188b74d
+2026-02-02T01:06:38.2545806Z TRACE:: BacktestingResultHandler.SendAnalysisResult(): Processed final packet
+2026-02-02T01:06:38.2548272Z TRACE:: Engine.Run(): Disconnecting from brokerage...
+2026-02-02T01:06:38.2548827Z TRACE:: Engine.Run(): Disposing of setup handler...
+2026-02-02T01:06:38.2549123Z TRACE:: Engine.Main(): Analysis Completed and Results Posted.
+2026-02-02T01:06:38.2550978Z TRACE:: DataMonitor.Exit(): start...
+2026-02-02T01:06:38.2551203Z TRACE:: StopSafely(): Waiting for '' thread to stop...
+2026-02-02T01:06:38.2583838Z TRACE:: DataMonitor.GenerateReport():
+DATA USAGE:: Total data requests 53
+DATA USAGE:: Succeeded data requests 26
+DATA USAGE:: Failed data requests 27
+DATA USAGE:: Failed data requests percentage 51%
+DATA USAGE:: Total universe data requests 0
+DATA USAGE:: Succeeded universe data requests 0
+DATA USAGE:: Failed universe data requests 0
+DATA USAGE:: Failed universe data requests percentage 0%
+2026-02-02T01:06:38.2639587Z TRACE:: DataMonitor.Exit(): end
+2026-02-02T01:06:38.2679876Z TRACE:: Config.GetValue(): close-automatically - Using default value: False

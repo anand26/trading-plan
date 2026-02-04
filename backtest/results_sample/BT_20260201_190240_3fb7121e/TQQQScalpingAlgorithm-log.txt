@@ -1,0 +1,138 @@
+Launching analysis for TQQQScalpingAlgorithm with LEAN Engine v2.5.0.0
+2026-01-02 00:00:00 Warmup period set to 0 days
+2026-01-02 00:00:00 [SQL] Connected to TradingDB
+2026-01-02 00:00:00 [SQL] Started session: BT_20260201_190240_3fb7121e
+2026-01-02 00:00:00 [SQL] Session started: BT_20260201_190240_3fb7121e
+2026-01-02 00:00:00 TQQQScalpingAlgorithm Initialized
+2026-01-02 00:00:00 Parameters: RSI=11, BB=29/2.2
+2026-01-02 00:00:00 Position Sizing: L1=0.5, L2=0.27, L3=0.26
+2026-01-02 00:00:00 SQL Persistence: Enabled
+2026-01-02 00:00:00 Algorithm starting warm up...
+2026-01-02 00:00:00 [PARAMS] RSI Oversold: 26.4, RSI Overbought: 71.8
+2026-01-02 00:00:00 [PARAMS] BB Std Dev: 2.2, Stop Loss: 0.027, Take Profit: 0.037
+2026-01-02 00:00:00 [PARAMS] RSI Period: 11, BB Period: 29
+2026-01-02 00:00:00 [PARAMS] EMA Fast: 14, EMA Slow: 23
+2026-01-02 00:00:00 [PARAMS] Position Sizes: L1=0.5, L2=0.27, L3=0.26
+2026-01-02 00:00:00 [WEBHOOK] Simulation enabled - logging to C:\Users\anand\Documents\trading_plan\backtest\results\BT_20260201_190240_3fb7121e\webhook_log.txt
+2026-01-02 00:00:00 Algorithm finished warming up.
+2026-01-02 09:35:00 Daily state reset at 2026-01-02 09:35:00
+2026-01-02 10:00:00 2026-01-02 10:00:00 Indicators NOT ready - EMA_fast: False, EMA_slow: False, RSI: False, BB: False
+2026-01-02 11:00:00 2026-01-02 11:00:00 Indicators NOT ready - EMA_fast: True, EMA_slow: False, RSI: True, BB: False
+2026-01-02 11:25:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-01-02 11:25:00 [REGIME] Changed to mean_reverting (strength: 0.0001)
+2026-01-02 12:00:00 2026-01-02 12:00:00 Regime: mean_reverting, RSI: 48.4, Oversold: 26.4
+2026-01-02 12:15:00 [ORDER FILLED] 2026-01-02 12:15:00 | TQQQ | BUY | Price=54.18 | Qty=920.0
+2026-01-02 12:15:00 [TRADE] 2026-01-02 12:15:00 | TQQQ | ENTRY_L1 | Price=54.18 | Qty=923 | P&L=0.00% | RSI=25.5, BB_Middle=54.39
+2026-01-02 13:00:00 2026-01-02 13:00:00 Regime: mean_reverting, RSI: 45.8, Oversold: 26.4
+2026-01-02 14:00:00 2026-01-02 14:00:00 Regime: mean_reverting, RSI: 43.5, Oversold: 26.4
+2026-01-02 14:50:00 [ORDER FILLED] 2026-01-02 14:50:00 | TQQQ | SELL | Price=54.58 | Qty=-920.0
+2026-01-02 14:50:00 [TRADE] 2026-01-02 14:50:00 | TQQQ | EXIT | Price=54.58 | Qty=920 | P&L=0.74% | RSI reversal + above VWAP (profit: 0.74%)
+2026-01-02 14:50:00 [SQL] Trade logged: TQQQ BUY PnL=$369.14
+2026-01-02 15:00:00 2026-01-02 15:00:00 Regime: mean_reverting, RSI: 59.8, Oversold: 26.4
+2026-01-02 15:25:00 [ORDER FILLED] 2026-01-02 15:25:00 | TQQQ | BUY | Price=52.93 | Qty=945.0
+2026-01-02 15:25:00 [TRADE] 2026-01-02 15:25:00 | TQQQ | ENTRY_L1 | Price=52.93 | Qty=948 | P&L=0.00% | RSI=20.1, BB_Middle=54.14
+2026-01-02 15:40:00 [SQL] Market regime: QQQ → TRENDING_DOWN
+2026-01-02 15:40:00 [REGIME] Changed to trending_down (strength: -0.0010)
+2026-01-02 15:50:00 [ORDER FILLED] 2026-01-02 15:50:00 | TQQQ | SELL | Price=53.20 | Qty=-945.0
+2026-01-02 15:50:00 EOD Close - TQQQ: Avg Price=52.93, Entries=1
+2026-01-02 15:50:00 [SQL] Trade logged: TQQQ BUY PnL=$255.99
+2026-01-02 15:50:00 All positions closed at 2026-01-02 15:50:00. Daily trades: 2
+2026-01-05 09:35:00 Daily state reset at 2026-01-05 09:35:00
+2026-01-05 10:00:00 2026-01-05 10:00:00 Regime: trending_down, RSI: 44.1, Oversold: 26.4
+2026-01-05 10:05:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-01-05 10:05:00 [REGIME] Changed to mean_reverting (strength: -0.0010)
+2026-01-05 11:00:00 2026-01-05 11:00:00 Regime: mean_reverting, RSI: 52.7, Oversold: 26.4
+2026-01-05 12:00:00 2026-01-05 12:00:00 Regime: mean_reverting, RSI: 56.0, Oversold: 26.4
+2026-01-05 13:00:00 2026-01-05 13:00:00 Regime: mean_reverting, RSI: 46.4, Oversold: 26.4
+2026-01-05 14:00:00 2026-01-05 14:00:00 Regime: mean_reverting, RSI: 58.9, Oversold: 26.4
+2026-01-05 15:00:00 2026-01-05 15:00:00 Regime: mean_reverting, RSI: 51.6, Oversold: 26.4
+2026-01-05 15:50:00 All positions closed at 2026-01-05 15:50:00. Daily trades: 0
+2026-01-06 09:35:00 Daily state reset at 2026-01-06 09:35:00
+2026-01-06 10:00:00 2026-01-06 10:00:00 Regime: mean_reverting, RSI: 42.3, Oversold: 26.4
+2026-01-06 11:00:00 2026-01-06 11:00:00 Regime: mean_reverting, RSI: 48.8, Oversold: 26.4
+2026-01-06 12:00:00 2026-01-06 12:00:00 Regime: mean_reverting, RSI: 51.8, Oversold: 26.4
+2026-01-06 13:00:00 2026-01-06 13:00:00 Regime: mean_reverting, RSI: 75.6, Oversold: 26.4
+2026-01-06 14:00:00 2026-01-06 14:00:00 Regime: mean_reverting, RSI: 46.3, Oversold: 26.4
+2026-01-06 15:00:00 2026-01-06 15:00:00 Regime: mean_reverting, RSI: 85.4, Oversold: 26.4
+2026-01-06 15:50:00 All positions closed at 2026-01-06 15:50:00. Daily trades: 0
+2026-01-07 09:35:00 Daily state reset at 2026-01-07 09:35:00
+2026-01-07 10:00:00 2026-01-07 10:00:00 Regime: mean_reverting, RSI: 60.4, Oversold: 26.4
+2026-01-07 11:00:00 2026-01-07 11:00:00 Regime: mean_reverting, RSI: 51.5, Oversold: 26.4
+2026-01-07 12:00:00 2026-01-07 12:00:00 Regime: mean_reverting, RSI: 66.1, Oversold: 26.4
+2026-01-07 13:00:00 2026-01-07 13:00:00 Regime: mean_reverting, RSI: 53.5, Oversold: 26.4
+2026-01-07 14:00:00 2026-01-07 14:00:00 Regime: mean_reverting, RSI: 66.7, Oversold: 26.4
+2026-01-07 15:00:00 2026-01-07 15:00:00 Regime: mean_reverting, RSI: 78.4, Oversold: 26.4
+2026-01-07 15:50:00 All positions closed at 2026-01-07 15:50:00. Daily trades: 0
+2026-01-08 09:35:00 Daily state reset at 2026-01-08 09:35:00
+2026-01-08 10:00:00 2026-01-08 10:00:00 Regime: mean_reverting, RSI: 35.1, Oversold: 26.4
+2026-01-08 11:00:00 2026-01-08 11:00:00 Regime: mean_reverting, RSI: 48.0, Oversold: 26.4
+2026-01-08 12:00:00 2026-01-08 12:00:00 Regime: mean_reverting, RSI: 48.2, Oversold: 26.4
+2026-01-08 13:00:00 2026-01-08 13:00:00 Regime: mean_reverting, RSI: 49.7, Oversold: 26.4
+2026-01-08 14:00:00 2026-01-08 14:00:00 Regime: mean_reverting, RSI: 63.7, Oversold: 26.4
+2026-01-08 14:35:00 [ORDER FILLED] 2026-01-08 14:35:00 | TQQQ | BUY | Price=54.38 | Qty=922.0
+2026-01-08 14:35:00 [TRADE] 2026-01-08 14:35:00 | TQQQ | ENTRY_L1 | Price=54.38 | Qty=925 | P&L=0.00% | RSI=21.3, BB_Middle=54.83
+2026-01-08 15:00:00 2026-01-08 15:00:00 Regime: mean_reverting, RSI: 19.5, Oversold: 26.4
+2026-01-08 15:05:00 [SQL] Market regime: QQQ → TRENDING_DOWN
+2026-01-08 15:05:00 [REGIME] Changed to trending_down (strength: -0.0010)
+2026-01-08 15:10:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-01-08 15:10:00 [REGIME] Changed to mean_reverting (strength: -0.0010)
+2026-01-08 15:50:00 [ORDER FILLED] 2026-01-08 15:50:00 | TQQQ | SELL | Price=54.03 | Qty=-922.0
+2026-01-08 15:50:00 EOD Close - TQQQ: Avg Price=54.38, Entries=1
+2026-01-08 15:50:00 [SQL] Trade logged: TQQQ BUY PnL=$-319.22
+2026-01-08 15:50:00 All positions closed at 2026-01-08 15:50:00. Daily trades: 1
+2026-01-09 09:35:00 Daily state reset at 2026-01-09 09:35:00
+2026-01-09 10:00:00 2026-01-09 10:00:00 Regime: mean_reverting, RSI: 55.7, Oversold: 26.4
+2026-01-09 11:00:00 2026-01-09 11:00:00 Regime: mean_reverting, RSI: 57.5, Oversold: 26.4
+2026-01-09 12:00:00 2026-01-09 12:00:00 Regime: mean_reverting, RSI: 53.3, Oversold: 26.4
+2026-01-09 13:00:00 2026-01-09 13:00:00 Regime: mean_reverting, RSI: 59.1, Oversold: 26.4
+2026-01-09 14:00:00 2026-01-09 14:00:00 Regime: mean_reverting, RSI: 75.1, Oversold: 26.4
+2026-01-09 14:35:00 [ORDER FILLED] 2026-01-09 14:35:00 | TQQQ | BUY | Price=54.16 | Qty=923.0
+2026-01-09 14:35:00 [TRADE] 2026-01-09 14:35:00 | TQQQ | ENTRY_L1 | Price=54.16 | Qty=926 | P&L=0.00% | RSI=24.0, BB_Middle=54.63
+2026-01-09 14:40:00 [ORDER FILLED] 2026-01-09 14:40:00 | TQQQ | SELL | Price=54.68 | Qty=-923.0
+2026-01-09 14:40:00 [TRADE] 2026-01-09 14:40:00 | TQQQ | EXIT | Price=54.68 | Qty=923 | P&L=0.96% | RSI reversal + above VWAP (profit: 0.96%)
+2026-01-09 14:40:00 [SQL] Trade logged: TQQQ BUY PnL=$481.52
+2026-01-09 15:00:00 2026-01-09 15:00:00 Regime: mean_reverting, RSI: 46.6, Oversold: 26.4
+2026-01-09 15:50:00 All positions closed at 2026-01-09 15:50:00. Daily trades: 1
+2026-01-12 09:35:00 Daily state reset at 2026-01-12 09:35:00
+2026-01-12 10:00:00 2026-01-12 10:00:00 Regime: mean_reverting, RSI: 42.7, Oversold: 26.4
+2026-01-12 11:00:00 2026-01-12 11:00:00 Regime: mean_reverting, RSI: 44.9, Oversold: 26.4
+2026-01-12 12:00:00 2026-01-12 12:00:00 Regime: mean_reverting, RSI: 49.2, Oversold: 26.4
+2026-01-12 13:00:00 2026-01-12 13:00:00 Regime: mean_reverting, RSI: 65.7, Oversold: 26.4
+2026-01-12 14:00:00 2026-01-12 14:00:00 Regime: mean_reverting, RSI: 53.2, Oversold: 26.4
+2026-01-12 15:00:00 2026-01-12 15:00:00 Regime: mean_reverting, RSI: 78.4, Oversold: 26.4
+2026-01-12 15:15:00 [SQL] Market regime: QQQ → TRENDING_UP
+2026-01-12 15:15:00 [REGIME] Changed to trending_up (strength: 0.0010)
+2026-01-12 15:45:00 [SQL] Market regime: QQQ → MEAN_REVERTING
+2026-01-12 15:45:00 [REGIME] Changed to mean_reverting (strength: 0.0010)
+2026-01-12 15:50:00 All positions closed at 2026-01-12 15:50:00. Daily trades: 0
+2026-01-13 09:35:00 Daily state reset at 2026-01-13 09:35:00
+2026-01-13 10:00:00 2026-01-13 10:00:00 Regime: mean_reverting, RSI: 61.1, Oversold: 26.4
+2026-01-13 11:00:00 2026-01-13 11:00:00 Regime: mean_reverting, RSI: 45.6, Oversold: 26.4
+2026-01-13 12:00:00 2026-01-13 12:00:00 Regime: mean_reverting, RSI: 59.6, Oversold: 26.4
+2026-01-13 13:00:00 2026-01-13 13:00:00 Regime: mean_reverting, RSI: 42.4, Oversold: 26.4
+2026-01-13 14:00:00 2026-01-13 14:00:00 Regime: mean_reverting, RSI: 62.3, Oversold: 26.4
+2026-01-13 15:00:00 2026-01-13 15:00:00 Regime: mean_reverting, RSI: 45.9, Oversold: 26.4
+2026-01-13 15:25:00 [ORDER FILLED] 2026-01-13 15:25:00 | TQQQ | BUY | Price=55.18 | Qty=910.0
+2026-01-13 15:25:00 [TRADE] 2026-01-13 15:25:00 | TQQQ | ENTRY_L1 | Price=55.18 | Qty=913 | P&L=0.00% | RSI=24.2, BB_Middle=55.89
+2026-01-13 15:50:00 [ORDER FILLED] 2026-01-13 15:50:00 | TQQQ | SELL | Price=55.04 | Qty=-910.0
+2026-01-13 15:50:00 EOD Close - TQQQ: Avg Price=55.18, Entries=1
+2026-01-13 15:50:00 [SQL] Trade logged: TQQQ BUY PnL=$-127.85
+2026-01-13 15:50:00 All positions closed at 2026-01-13 15:50:00. Daily trades: 1
+2026-01-13 16:00:00 ============================================================
+2026-01-13 16:00:00 ALGORITHM COMPLETED
+2026-01-13 16:00:00 Final Portfolio Value: $100,657.62
+2026-01-13 16:00:00 Total Return: 0.66%
+2026-01-13 16:00:00 ============================================================
+2026-01-13 16:00:00 [SQL] Flushed 10 orders
+2026-01-13 16:00:00 [SQL] Ended session: BT_20260201_190240_3fb7121e
+2026-01-13 16:00:00 [SQL] Disconnected from TradingDB
+2026-01-13 16:00:00 [SQL] Session ended: BT_20260201_190240_3fb7121e
+2026-01-13 16:00:00 [SQL] Data available for Trade-Mind MCP queries
+2026-01-13 16:00:00 [WEBHOOK] Simulation Summary:
+2026-01-13 16:00:00   Total webhooks fired: 7
+2026-01-13 16:00:00   Scheduled: 0
+2026-01-13 16:00:00   Signals: 7
+2026-01-13 16:00:00   Alerts: 0
+2026-01-13 16:00:00   Status: 0
+2026-01-13 16:00:00   Webhook log: See results folder
+Algorithm Id:(TQQQScalpingAlgorithm) completed in 1.10 seconds at 9k data points per second. Processing total of 9,361 data points.

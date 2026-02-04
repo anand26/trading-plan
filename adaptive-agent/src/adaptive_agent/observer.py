@@ -71,36 +71,27 @@ class Observer:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Get latest prices from MarketData
+            # Get latest prices and indicators from Bars table
             cursor.execute("""
                 SELECT TOP 1 
-                    Symbol, Price, Volume, RSI, Momentum, Volatility,
-                    TrendStrength, MarketRegime
-                FROM MarketData
+                    Symbol, [Close] as Price, Volume, RSI, VWAP
+                FROM Bars
                 WHERE Symbol IN ('TQQQ', 'QQQ')
                 ORDER BY Timestamp DESC
             """)
             
             for row in cursor.fetchall():
-                symbol, price, volume, rsi, momentum, volatility, trend, regime = row
+                symbol, price, volume, rsi, vwap = row
                 if symbol == "TQQQ":
                     snapshot.tqqq_price = price
                     snapshot.rsi = rsi or 50.0
-                    snapshot.momentum = momentum or 0.0
-                    snapshot.volatility = volatility or 0.0
-                    snapshot.trend_strength = trend or 0.0
-                    if regime:
-                        try:
-                            snapshot.regime = MarketRegime(regime.upper())
-                        except ValueError:
-                            snapshot.regime = MarketRegime.NEUTRAL
                 elif symbol == "QQQ":
                     snapshot.qqq_price = price
             
             # Get SQQQ if exists
             cursor.execute("""
-                SELECT TOP 1 Price
-                FROM MarketData
+                SELECT TOP 1 [Close]
+                FROM Bars
                 WHERE Symbol = 'SQQQ'
                 ORDER BY Timestamp DESC
             """)
@@ -108,16 +99,22 @@ class Observer:
             if row:
                 snapshot.sqqq_price = row[0]
             
-            # Calculate regime confidence from recent accuracy
+            # Get market regime from MarketRegimes table
             cursor.execute("""
-                SELECT AVG(CASE WHEN ActualReturn * PredictedDirection > 0 THEN 1.0 ELSE 0.0 END)
-                FROM RegimePredictions
-                WHERE PredictionDate >= DATEADD(day, -7, GETDATE())
-                AND ActualReturn IS NOT NULL
+                SELECT TOP 1 Regime, Confidence
+                FROM MarketRegimes
+                ORDER BY Date DESC
             """)
             row = cursor.fetchone()
-            if row and row[0]:
-                snapshot.regime_confidence = float(row[0])
+            if row:
+                regime_str, confidence = row
+                if regime_str:
+                    try:
+                        snapshot.regime = MarketRegime(regime_str.upper())
+                    except ValueError:
+                        snapshot.regime = MarketRegime.NEUTRAL
+                if confidence:
+                    snapshot.regime_confidence = float(confidence) / 100.0  # Convert from percentage
             
             cursor.close()
             
@@ -147,30 +144,32 @@ class Observer:
             conn = self._get_connection()
             cursor = conn.cursor()
             
+            # Get open positions from Trades table (ExitTime IS NULL means still open)
             cursor.execute("""
                 SELECT 
                     Symbol,
-                    Quantity,
-                    AverageEntryPrice,
-                    CurrentPrice,
-                    UnrealizedPnL,
-                    Side
-                FROM vw_CurrentPositions
-                WHERE Quantity != 0
+                    EntryQuantity as Quantity,
+                    EntryPrice,
+                    Direction
+                FROM Trades
+                WHERE ExitTime IS NULL
             """)
             
             for row in cursor.fetchall():
-                symbol, qty, entry, current, pnl, side = row
-                unrealized_pct = (pnl / (entry * abs(qty))) * 100 if entry and qty else 0
+                symbol, qty, entry, direction = row
+                # For demo, we don't have real-time prices, use entry price
+                current = entry  
+                pnl = 0.0  # Would need real-time price to calculate
+                unrealized_pct = 0.0
                 
                 positions.append(PositionSnapshot(
                     symbol=symbol,
                     quantity=qty or 0,
                     avg_entry_price=entry or 0.0,
                     current_price=current or 0.0,
-                    unrealized_pnl=pnl or 0.0,
+                    unrealized_pnl=pnl,
                     unrealized_pnl_pct=unrealized_pct,
-                    side=side or "none",
+                    side=direction.lower() if direction else "none",
                 ))
             
             cursor.close()
@@ -195,15 +194,15 @@ class Observer:
             conn = self._get_connection()
             cursor = conn.cursor()
             
-            # Today's metrics
+            # Today's metrics (using actual schema: ExitTime not null means closed, NetPnL for P&L)
             cursor.execute("""
                 SELECT 
-                    ISNULL(SUM(PnL), 0) as DailyPnL,
+                    ISNULL(SUM(NetPnL), 0) as DailyPnL,
                     COUNT(*) as DailyTrades,
-                    ISNULL(AVG(CASE WHEN PnL > 0 THEN 1.0 ELSE 0.0 END), 0) as WinRate
+                    ISNULL(AVG(CASE WHEN NetPnL > 0 THEN 1.0 ELSE 0.0 END), 0) as WinRate
                 FROM Trades
                 WHERE CAST(ExitTime AS DATE) = CAST(GETDATE() AS DATE)
-                AND Status = 'CLOSED'
+                AND ExitTime IS NOT NULL
             """)
             row = cursor.fetchone()
             if row:
@@ -214,12 +213,12 @@ class Observer:
             # Weekly metrics (last 7 days)
             cursor.execute("""
                 SELECT 
-                    ISNULL(SUM(PnL), 0) as WeeklyPnL,
+                    ISNULL(SUM(NetPnL), 0) as WeeklyPnL,
                     COUNT(*) as WeeklyTrades,
-                    ISNULL(AVG(CASE WHEN PnL > 0 THEN 1.0 ELSE 0.0 END), 0) as WinRate
+                    ISNULL(AVG(CASE WHEN NetPnL > 0 THEN 1.0 ELSE 0.0 END), 0) as WinRate
                 FROM Trades
                 WHERE ExitTime >= DATEADD(day, -7, GETDATE())
-                AND Status = 'CLOSED'
+                AND ExitTime IS NOT NULL
             """)
             row = cursor.fetchone()
             if row:
@@ -230,11 +229,11 @@ class Observer:
             # Overall metrics
             cursor.execute("""
                 SELECT 
-                    ISNULL(SUM(PnL), 0) as TotalPnL,
+                    ISNULL(SUM(NetPnL), 0) as TotalPnL,
                     COUNT(*) as TotalTrades,
-                    ISNULL(AVG(CASE WHEN PnL > 0 THEN 1.0 ELSE 0.0 END), 0) as WinRate
+                    ISNULL(AVG(CASE WHEN NetPnL > 0 THEN 1.0 ELSE 0.0 END), 0) as WinRate
                 FROM Trades
-                WHERE Status = 'CLOSED'
+                WHERE ExitTime IS NOT NULL
             """)
             row = cursor.fetchone()
             if row:
@@ -242,28 +241,40 @@ class Observer:
                 snapshot.total_trades = int(row[1] or 0)
                 snapshot.overall_win_rate = float(row[2] or 0)
             
-            # Get Sharpe ratio and drawdown from metrics table
+            # Get drawdown from DailyPerformance table (no SharpeRatio column exists)
             cursor.execute("""
                 SELECT TOP 1 
-                    SharpeRatio, 
-                    MaxDrawdown,
-                    CurrentDrawdown
-                FROM PerformanceMetrics
-                ORDER BY CalculatedAt DESC
+                    ISNULL(MaxDrawdown, 0) as MaxDrawdown,
+                    ISNULL(MaxDrawdownAmount, 0) as MaxDrawdownAmount
+                FROM DailyPerformance
+                ORDER BY Date DESC
             """)
             row = cursor.fetchone()
             if row:
-                snapshot.sharpe_ratio = float(row[0] or 0)
-                snapshot.max_drawdown = float(row[1] or 0)
-                snapshot.current_drawdown = float(row[2] or 0)
+                snapshot.max_drawdown = float(row[0] or 0)
+                snapshot.current_drawdown = float(row[0] or 0)  # Use MaxDrawdown as current
+            
+            # Calculate Sharpe ratio from trade data if we have enough trades
+            if snapshot.total_trades >= 10:
+                cursor.execute("""
+                    SELECT STDEV(NetPnL), AVG(NetPnL)
+                    FROM Trades
+                    WHERE ExitTime IS NOT NULL
+                """)
+                row = cursor.fetchone()
+                if row and row[0] and row[0] > 0:
+                    std_dev = float(row[0])
+                    avg_pnl = float(row[1] or 0)
+                    # Simplified Sharpe approximation (annualized)
+                    snapshot.sharpe_ratio = (avg_pnl / std_dev) * (252 ** 0.5) if std_dev > 0 else 0.0
             
             # Calculate current streak
             cursor.execute("""
                 WITH RecentTrades AS (
                     SELECT TOP 20
-                        CASE WHEN PnL > 0 THEN 1 ELSE -1 END as Result
+                        CASE WHEN NetPnL > 0 THEN 1 ELSE -1 END as Result
                     FROM Trades
-                    WHERE Status = 'CLOSED'
+                    WHERE ExitTime IS NOT NULL
                     ORDER BY ExitTime DESC
                 ),
                 Streaks AS (

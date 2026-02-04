@@ -1,0 +1,97 @@
+# ============================================
+# TQQQ/SQQQ Pairs Trading Stack
+# ============================================
+# 
+# Services:
+#   - webhook: TradingView webhook receiver
+#   - ngrok: Exposes webhook to internet for TradingView
+#   - dashboard: Streamlit monitoring dashboard (optional)
+#
+# Usage:
+#   docker-compose up -d              # Start all services
+#   docker-compose logs -f ngrok      # Get the public URL
+#   docker-compose logs -f webhook    # View webhook logs
+#   docker-compose down               # Stop all services
+#
+# ============================================
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # Webhook Server
+  # ==========================================
+  webhook:
+    build: ./webhooks
+    container_name: pairs-webhook
+    ports:
+      - "8080:8080"
+    environment:
+      # Alpaca API
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_SECRET_KEY=${ALPACA_SECRET_KEY}
+      - ALPACA_BASE_URL=${ALPACA_BASE_URL:-https://paper-api.alpaca.markets}
+      # Database (use host.docker.internal on Windows/Mac)
+      - DB_SERVER=host.docker.internal
+      - DB_NAME=${DB_NAME:-TradingDB}
+      - DB_DRIVER=ODBC Driver 18 for SQL Server
+      - DB_USERNAME=${DB_USERNAME:-sa}
+      - DB_PASSWORD=${DB_PASSWORD:-sa123}
+      # Webhook
+      - WEBHOOK_PORT=8080
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
+      - TRADING_MODE=${TRADING_MODE:-paper}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - trading-network
+
+  # ==========================================
+  # ngrok - Expose webhook to internet
+  # ==========================================
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: pairs-ngrok
+    restart: unless-stopped
+    command:
+      - "http"
+      - "webhook:8080"
+      - "--log=stdout"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"  # ngrok web interface
+    depends_on:
+      - webhook
+    networks:
+      - trading-network
+
+  # ==========================================
+  # Dashboard (Optional - can run locally)
+  # ==========================================
+  dashboard:
+    build: ./dashboard
+    container_name: pairs-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - DB_SERVER=host.docker.internal
+      - DB_NAME=${DB_NAME:-TradingDB}
+      - DB_DRIVER=ODBC Driver 17 for SQL Server
+      - DB_USERNAME=${DB_USERNAME:-sa}
+      - DB_PASSWORD=${DB_PASSWORD:-sa123}
+    restart: unless-stopped
+    depends_on:
+      - webhook
+    networks:
+      - trading-network
+    profiles:
+      - full  # Only starts with: docker-compose --profile full up
+
+networks:
+  trading-network:
+    driver: bridge

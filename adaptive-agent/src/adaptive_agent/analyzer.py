@@ -223,24 +223,27 @@ class Analyzer:
             conn = self._get_connection()
             cursor = conn.cursor()
             
+            # Use actual stored procedure signature (no @Limit parameter)
             cursor.execute("""
-                EXEC sp_GetActiveRecommendations @Limit = 10
+                EXEC sp_GetActiveRecommendations 
+                    @MinConfidence = 0.5
             """)
             
             for row in cursor.fetchall():
-                rec_id, pattern_id, rec_type, param, old_val, new_val, \
-                    reason, confidence, priority, created = row
+                # Matches actual return columns from stored procedure
+                rec_id, param, old_val, new_val, confidence, \
+                    expected_improvement, reason, patterns, regime, valid_until, created = row
                 
                 recommendations.append({
                     "recommendation_id": rec_id,
-                    "pattern_id": pattern_id,
-                    "recommendation_type": rec_type,
+                    "pattern_id": patterns,
+                    "recommendation_type": "PARAMETER_ADJUSTMENT",
                     "parameter_name": param,
                     "old_value": old_val,
                     "new_value": new_val,
                     "reason": reason,
                     "confidence": float(confidence or 0),
-                    "priority": priority,
+                    "priority": 1,
                     "created_at": created,
                 })
             

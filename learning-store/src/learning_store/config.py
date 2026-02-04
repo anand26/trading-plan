@@ -52,6 +52,37 @@ class LearningConfig:
     debug: bool
 
 
+@dataclass
+class LearningStoreConfig:
+    """Main configuration class for Learning Store (used by tests)."""
+    db_server: str
+    db_name: str
+    min_pattern_confidence: float
+    pattern_decay_days: int
+    driver: str = "ODBC Driver 17 for SQL Server"
+    username: str | None = None
+    password: str | None = None
+    
+    @property
+    def connection_string(self) -> str:
+        """Build the pyodbc connection string."""
+        if self.username and self.password:
+            return (
+                f"DRIVER={{{self.driver}}};"
+                f"SERVER={self.db_server};"
+                f"DATABASE={self.db_name};"
+                f"UID={self.username};"
+                f"PWD={self.password}"
+            )
+        else:
+            return (
+                f"DRIVER={{{self.driver}}};"
+                f"SERVER={self.db_server};"
+                f"DATABASE={self.db_name};"
+                f"Trusted_Connection=yes"
+            )
+
+
 def get_database_config() -> DatabaseConfig:
     """Get database configuration from environment."""
     return DatabaseConfig(

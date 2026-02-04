@@ -28,11 +28,30 @@ Streamlit-based performance visualization dashboard for the TQQQ/SQQQ adaptive t
 - Suggested corrections based on recent performance
 - Optimal parameter recommendations
 
+### 🚀 Backtest Runner (NEW)
+- **Parameter Configuration**: Edit RSI, Bollinger Bands, Stop Loss, and other strategy parameters
+- **Run Backtests**: Execute backtests via MCP tools, Python scripts, or terminal commands
+- **Quick Parameter Override**: Modify parameters for a single run without saving
+- **Webhook Monitor**: Real-time view of webhook events triggered during backtests
+  - Filter by type (SIGNAL, SCHEDULED, ALERT, STATUS)
+  - Auto-refresh capability
+  - Download webhook logs
+- **Backtest History**: View all previous backtest runs with comparison capability
+- **Quick Run Presets**: One-click presets for common date ranges (Last 30 days, Quarter, YTD)
+
 ### ⚙️ System Status
 - Database connection health
 - Algorithm deployment status
 - Recent backtest results
 - System alerts and notifications
+
+## Data Source Filtering
+
+The dashboard includes a **Data Source** selector in the sidebar that filters all data by:
+- **All**: Show all data combined
+- **Backtest**: Show only backtest results
+- **Paper**: Show only paper trading data
+- **Live**: Show only live trading data
 
 ## Installation
 
@@ -82,6 +101,7 @@ dashboard/
 │   │   ├── trades.py       # Trade analysis
 │   │   ├── regimes.py      # Regime analysis
 │   │   ├── learning.py     # Learning insights
+│   │   ├── backtest_runner.py  # Backtest runner & webhook monitor
 │   │   └── status.py       # System status
 │   └── components/
 │       ├── charts.py       # Plotly chart components

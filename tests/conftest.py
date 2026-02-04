@@ -303,7 +303,10 @@ def adaptive_agent(agent_config):
 def learning_store(learning_store_config):
     """Create a LearningStore instance."""
     from learning_store.store import LearningStore
-    return LearningStore(learning_store_config)
+    # LearningStore doesn't take config - it uses global config from environment
+    store = LearningStore()
+    store.initialize()
+    return store
 
 
 # ============================================
