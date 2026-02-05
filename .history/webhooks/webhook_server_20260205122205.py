@@ -607,19 +607,16 @@ class DatabaseLogger:
                         # Insert new record
                         cursor.execute("""
                             INSERT INTO dbo.DailyPerformance 
-                            (Date, StartingEquity, EndingEquity, DailyPnL, DailyPnLPercent,
-                             NumTrades, WinningTrades, LosingTrades, GrossProfit, GrossLoss, 
-                             SessionId, CreatedAt, LastUpdated)
-                            VALUES (?, 0, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)
+                            (Date, NumTrades, WinningTrades, LosingTrades, GrossProfit, GrossLoss, 
+                             DailyPnL, SessionId, CreatedAt, LastUpdated)
+                            VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (
                             today,
-                            gross_pnl,  # EndingEquity = P&L for now
-                            gross_pnl,
-                            pnl_pct,
                             1 if is_win else 0,
                             0 if is_win else 1,
                             gross_pnl if is_win else 0,
                             abs(gross_pnl) if not is_win else 0,
+                            gross_pnl,
                             session_id,
                             datetime.now(timezone.utc),
                             datetime.now(timezone.utc)

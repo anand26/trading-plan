@@ -723,7 +723,83 @@ Looking at your backtest stats:
 | **Avg Loss** | $460 | Losers are contained |
 | **Profit Factor** | 1.85 | You win MORE than you lose |
 
-**This trade (-$1.55/share × 1,122 shares ≈ 
+**This trade (-$1.55/share × 1,122 shares ≈ -$1,739) is within your expected losing trades.**
+
+---
+
+## 🎯 Are You Going in the Right Direction?
+
+**YES, if:**
+- Over 100+ trades, you expect 60% winners
+- This is trade #1 - too early to judge
+- Your strategy is working AS DESIGNED
+
+**Consider adjusting if:**
+- You consistently lose money even when zscore normalizes (10+ trades)
+- Your live results deviate significantly from backtest
+
+---
+
+## 💡 Why Your Strategy Still Works
+
+Your edge comes from:
+
+1. **Winners are bigger** ($568 avg vs $460 avg loss)
+2. **Profit factor 1.85** (winners 85% larger than losers)
+3. **60% win rate** (more wins than losses)
+
+```
+10 Trades Example:
+- 6 winners × $568 = +$3,408
+- 4 losers  × $460 = -$1,840
+- Net: +$1,568 (profitable despite 40% losses)
+```
+
+---
+
+## 🔍 What to Monitor
+
+Track these over the next 20-30 trades:
+
+| Metric | Expected | Concerning |
+|--------|----------|------------|
+| **Win Rate** | ~60% | <50% |
+| **Avg Win** | $500-600 | <$400 |
+| **Avg Loss** | $400-500 | >$600 |
+| **Profit Factor** | ~1.85 | <1.3 |
+
+---
+
+## ✅ Verdict
+
+**This is a normal losing trade.** The strategy:
+- ✅ Entered correctly (zscore -2.37)
+- ✅ Exited correctly (zscore -0.04)
+- ✅ Contained the loss to -3.04% (didn't hit -3.0 zscore stop)
+
+The ratio normalized but market conditions caused both ETFs to fall. **This is one of the 40% losing trades your backtest expects.**
+
+**Keep running it. Judge after 20+ trades, not 1.** 🎯
+
+---
+
+_**User (2026-02-04 19:59Z)**_
+
+entry long is 1.5, z-score is more then that , still no webhook alert, is it waiting for bar close or something else.?
+
+---
+
+_**Agent (model copilot/claude-sonnet-4.5)**_
+
+The user is showing a TradingView chart where:
+- Position: LONG_SQQQ
+- Z-Score: 1.827 (above the 1.5 entry threshold)
+- TQQQ Price: $50.46
+- SQQQ Price: $70.6
+
+The user is asking why there's no BUY_SQQQ webhook alert when zscore (1.827) > entry_zscore (1.5).
+
+Looking at the Pine Script code:
 
 ---
 

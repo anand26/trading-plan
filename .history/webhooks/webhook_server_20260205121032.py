@@ -535,99 +535,21 @@ class DatabaseLogger:
                 ))
             else:
                 # For exit, try to update the most recent open trade for this symbol
-                # First get the trade we're about to close to calculate P&L
                 cursor.execute("""
-                    SELECT TOP 1 TradeId, EntryPrice, EntryQuantity 
-                    FROM dbo.Trades 
-                    WHERE Symbol = ? AND ExitTime IS NULL 
-                    ORDER BY EntryTime DESC
-                """, (symbol,))
-                trade_row = cursor.fetchone()
-                
-                if trade_row:
-                    trade_id, entry_price, entry_qty = trade_row
-                    
-                    # Calculate P&L
-                    gross_pnl = (price - float(entry_price)) * float(entry_qty)
-                    pnl_pct = ((price / float(entry_price)) - 1) * 100 if entry_price else 0
-                    
-                    # Update trade with exit and P&L
-                    cursor.execute("""
-                        UPDATE dbo.Trades
-                        SET ExitTime = ?, ExitPrice = ?, ExitQuantity = ?, ExitReason = ?,
-                            GrossPnL = ?, NetPnL = ?, PnLPercent = ?
-                        WHERE TradeId = ?
-                    """, (
-                        datetime.now(timezone.utc),
-                        price,
-                        qty,
-                        f"Webhook:{action}",
-                        gross_pnl,
-                        gross_pnl,  # NetPnL = GrossPnL (no commission for now)
-                        pnl_pct,
-                        trade_id
-                    ))
-                    
-                    # ============================================
-                    # 3. Update DailyPerformance table
-                    # ============================================
-                    today = datetime.now(timezone.utc).date()
-                    is_win = gross_pnl > 0
-                    
-                    # Check if DailyPerformance record exists for today
-                    cursor.execute("""
-                        SELECT PerformanceId FROM dbo.DailyPerformance 
-                        WHERE Date = ? AND SessionId = ?
-                    """, (today, session_id))
-                    perf_row = cursor.fetchone()
-                    
-                    if perf_row:
-                        # Update existing record
-                        cursor.execute("""
-                            UPDATE dbo.DailyPerformance SET
-                                NumTrades = ISNULL(NumTrades, 0) + 1,
-                                WinningTrades = ISNULL(WinningTrades, 0) + ?,
-                                LosingTrades = ISNULL(LosingTrades, 0) + ?,
-                                GrossProfit = ISNULL(GrossProfit, 0) + ?,
-                                GrossLoss = ISNULL(GrossLoss, 0) + ?,
-                                DailyPnL = ISNULL(DailyPnL, 0) + ?,
-                                LastUpdated = ?
-                            WHERE Date = ? AND SessionId = ?
-                        """, (
-                            1 if is_win else 0,
-                            0 if is_win else 1,
-                            gross_pnl if is_win else 0,
-                            abs(gross_pnl) if not is_win else 0,
-                            gross_pnl,
-                            datetime.now(timezone.utc),
-                            today,
-                            session_id
-                        ))
-                    else:
-                        # Insert new record
-                        cursor.execute("""
-                            INSERT INTO dbo.DailyPerformance 
-                            (Date, StartingEquity, EndingEquity, DailyPnL, DailyPnLPercent,
-                             NumTrades, WinningTrades, LosingTrades, GrossProfit, GrossLoss, 
-                             SessionId, CreatedAt, LastUpdated)
-                            VALUES (?, 0, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            today,
-                            gross_pnl,  # EndingEquity = P&L for now
-                            gross_pnl,
-                            pnl_pct,
-                            1 if is_win else 0,
-                            0 if is_win else 1,
-                            gross_pnl if is_win else 0,
-                            abs(gross_pnl) if not is_win else 0,
-                            session_id,
-                            datetime.now(timezone.utc),
-                            datetime.now(timezone.utc)
-                        ))
-                    
-                    logger.info(f"Trade P&L: ${gross_pnl:.2f} ({pnl_pct:.2f}%) - DailyPerformance updated")
-                else:
-                    logger.warning(f"No open trade found for {symbol} to exit")
+                    UPDATE dbo.Trades
+                    SET ExitTime = ?, ExitPrice = ?, ExitQuantity = ?, ExitReason = ?
+                    WHERE TradeId = (
+                        SELECT TOP 1 TradeId FROM dbo.Trades 
+                        WHERE Symbol = ? AND ExitTime IS NULL 
+                        ORDER BY EntryTime DESC
+                    )
+                """, (
+                    datetime.now(timezone.utc),
+                    price,
+                    qty,
+                    f"Webhook:{action}",
+                    symbol
+                ))
                 
             conn.commit()
             logger.info(f"Trade & Order logged to database: {action} {symbol}")
@@ -673,16 +595,6 @@ class DatabaseLogger:
                     conn.close()
                 except:
                     pass
-    
-    def check_and_close_session_if_flat(self, positions_count: int, reason: str = "All positions closed"):
-        """
-        Close session automatically if no positions remain.
-        Call this after an EXIT trade to auto-end the session.
-        """
-        if positions_count == 0:
-            logger.info("No positions remaining - closing session automatically")
-            return self.close_session(reason)
-        return 0
 
 # ============================================================================
 # FASTAPI APPLICATION
@@ -716,11 +628,7 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    # Shutdown - close the active session
     logger.info("Shutting down webhook server...")
-    if db_logger:
-        db_logger.close_session("Server shutdown")
-    logger.info("Webhook server shutdown complete")
 
 app = FastAPI(
     title="TQQQ/SQQQ Pairs Trading Webhook",
@@ -895,13 +803,6 @@ async def receive_webhook(request: Request):
                             )
                         except asyncio.TimeoutError:
                             logger.warning("Database logging timed out, continuing...")
-                    
-                    # Auto-close session if no positions remain after EXIT
-                    remaining_positions = len(alpaca.get_positions())
-                    if remaining_positions == 0 and db_logger:
-                        exit_reason = payload.reason or "All positions closed"
-                        db_logger.check_and_close_session_if_flat(remaining_positions, f"EOD: {exit_reason}")
-                        logger.info(f"Session auto-closed: {exit_reason}")
         
         # Log webhook event asynchronously
         if db_logger:
@@ -1007,47 +908,6 @@ async def get_orders():
                 for o in orders
             ]
         }
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.post("/session/end")
-async def end_session(reason: str = "Manual end"):
-    """End the current trading session"""
-    if db_logger:
-        closed = db_logger.close_session(reason)
-        return {
-            "status": "success",
-            "message": f"Closed {closed} session(s)",
-            "reason": reason,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-    return {"status": "error", "message": "Database logger not initialized"}
-
-@app.get("/session/status")
-async def session_status():
-    """Get current session status"""
-    try:
-        conn = pyodbc.connect(Config.get_db_connection_string(), timeout=5)
-        cursor = conn.cursor()
-        session_type = "PAPER" if "paper" in Config.ALPACA_BASE_URL else "LIVE"
-        cursor.execute("""
-            SELECT SessionId, StartTime, Status, Notes 
-            FROM dbo.Sessions 
-            WHERE SessionType = ? AND SessionId LIKE 'WH-%'
-            ORDER BY StartTime DESC
-        """, (session_type,))
-        row = cursor.fetchone()
-        conn.close()
-        
-        if row:
-            return {
-                "session_id": row[0],
-                "start_time": str(row[1]),
-                "status": row[2],
-                "notes": row[3],
-                "mode": session_type
-            }
-        return {"status": "no_session", "mode": session_type}
     except Exception as e:
         return {"error": str(e)}
 

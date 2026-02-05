@@ -535,99 +535,21 @@ class DatabaseLogger:
                 ))
             else:
                 # For exit, try to update the most recent open trade for this symbol
-                # First get the trade we're about to close to calculate P&L
                 cursor.execute("""
-                    SELECT TOP 1 TradeId, EntryPrice, EntryQuantity 
-                    FROM dbo.Trades 
-                    WHERE Symbol = ? AND ExitTime IS NULL 
-                    ORDER BY EntryTime DESC
-                """, (symbol,))
-                trade_row = cursor.fetchone()
-                
-                if trade_row:
-                    trade_id, entry_price, entry_qty = trade_row
-                    
-                    # Calculate P&L
-                    gross_pnl = (price - float(entry_price)) * float(entry_qty)
-                    pnl_pct = ((price / float(entry_price)) - 1) * 100 if entry_price else 0
-                    
-                    # Update trade with exit and P&L
-                    cursor.execute("""
-                        UPDATE dbo.Trades
-                        SET ExitTime = ?, ExitPrice = ?, ExitQuantity = ?, ExitReason = ?,
-                            GrossPnL = ?, NetPnL = ?, PnLPercent = ?
-                        WHERE TradeId = ?
-                    """, (
-                        datetime.now(timezone.utc),
-                        price,
-                        qty,
-                        f"Webhook:{action}",
-                        gross_pnl,
-                        gross_pnl,  # NetPnL = GrossPnL (no commission for now)
-                        pnl_pct,
-                        trade_id
-                    ))
-                    
-                    # ============================================
-                    # 3. Update DailyPerformance table
-                    # ============================================
-                    today = datetime.now(timezone.utc).date()
-                    is_win = gross_pnl > 0
-                    
-                    # Check if DailyPerformance record exists for today
-                    cursor.execute("""
-                        SELECT PerformanceId FROM dbo.DailyPerformance 
-                        WHERE Date = ? AND SessionId = ?
-                    """, (today, session_id))
-                    perf_row = cursor.fetchone()
-                    
-                    if perf_row:
-                        # Update existing record
-                        cursor.execute("""
-                            UPDATE dbo.DailyPerformance SET
-                                NumTrades = ISNULL(NumTrades, 0) + 1,
-                                WinningTrades = ISNULL(WinningTrades, 0) + ?,
-                                LosingTrades = ISNULL(LosingTrades, 0) + ?,
-                                GrossProfit = ISNULL(GrossProfit, 0) + ?,
-                                GrossLoss = ISNULL(GrossLoss, 0) + ?,
-                                DailyPnL = ISNULL(DailyPnL, 0) + ?,
-                                LastUpdated = ?
-                            WHERE Date = ? AND SessionId = ?
-                        """, (
-                            1 if is_win else 0,
-                            0 if is_win else 1,
-                            gross_pnl if is_win else 0,
-                            abs(gross_pnl) if not is_win else 0,
-                            gross_pnl,
-                            datetime.now(timezone.utc),
-                            today,
-                            session_id
-                        ))
-                    else:
-                        # Insert new record
-                        cursor.execute("""
-                            INSERT INTO dbo.DailyPerformance 
-                            (Date, StartingEquity, EndingEquity, DailyPnL, DailyPnLPercent,
-                             NumTrades, WinningTrades, LosingTrades, GrossProfit, GrossLoss, 
-                             SessionId, CreatedAt, LastUpdated)
-                            VALUES (?, 0, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            today,
-                            gross_pnl,  # EndingEquity = P&L for now
-                            gross_pnl,
-                            pnl_pct,
-                            1 if is_win else 0,
-                            0 if is_win else 1,
-                            gross_pnl if is_win else 0,
-                            abs(gross_pnl) if not is_win else 0,
-                            session_id,
-                            datetime.now(timezone.utc),
-                            datetime.now(timezone.utc)
-                        ))
-                    
-                    logger.info(f"Trade P&L: ${gross_pnl:.2f} ({pnl_pct:.2f}%) - DailyPerformance updated")
-                else:
-                    logger.warning(f"No open trade found for {symbol} to exit")
+                    UPDATE dbo.Trades
+                    SET ExitTime = ?, ExitPrice = ?, ExitQuantity = ?, ExitReason = ?
+                    WHERE TradeId = (
+                        SELECT TOP 1 TradeId FROM dbo.Trades 
+                        WHERE Symbol = ? AND ExitTime IS NULL 
+                        ORDER BY EntryTime DESC
+                    )
+                """, (
+                    datetime.now(timezone.utc),
+                    price,
+                    qty,
+                    f"Webhook:{action}",
+                    symbol
+                ))
                 
             conn.commit()
             logger.info(f"Trade & Order logged to database: {action} {symbol}")
