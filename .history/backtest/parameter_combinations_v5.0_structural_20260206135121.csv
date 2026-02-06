@@ -1,0 +1,33 @@
+zscore_lookback,entry_zscore,exit_zscore,stop_zscore,position_size,stop_loss_pct,min_bars_between,bar_period_minutes,take_profit_pct,trailing_activation_pct,trailing_stop_pct,trend_filter_enabled,sma_fast_period,sma_slow_period,enable_vol_scaling,vol_scale_high_thresh,vol_scale_med_thresh,warmup_days,notes
+46,2.0,0.32,3,0.57,0.02,6,5,0,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,BASELINE v5.0 — higher entry + wider spacing
+46,1.5,0.32,3,0.57,0.02,3,5,0,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,v4.0 BASELINE (old defaults for comparison)
+46,2.0,0.32,3,0.57,0.02,6,5,0.02,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,Take profit 2%
+46,2.0,0.32,3,0.57,0.02,6,5,0.03,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,Take profit 3%
+46,2.0,0.32,3,0.57,0.02,6,5,0.05,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,Take profit 5%
+46,2.0,0.32,3,0.57,0.02,6,5,0,0.005,0.003,TRUE,20,50,FALSE,2.5,1.5,210,Trailing: activate 0.5% trail 0.3%
+46,2.0,0.32,3,0.57,0.02,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Trailing: activate 1% trail 0.5%
+46,2.0,0.32,3,0.57,0.02,6,5,0,0.01,0.007,TRUE,20,50,FALSE,2.5,1.5,210,Trailing: activate 1% trail 0.7%
+46,2.0,0.32,3,0.57,0.02,6,5,0,0.015,0.01,TRUE,20,50,FALSE,2.5,1.5,210,Trailing: activate 1.5% trail 1%
+46,2.0,0.32,3,0.57,0.02,6,5,0,0.02,0.01,TRUE,20,50,FALSE,2.5,1.5,210,Trailing: activate 2% trail 1%
+46,2.0,0.32,3,0.57,0.02,6,5,0.03,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Combo: TP 3% + trail 0.5%
+46,2.0,0.32,3,0.57,0.02,6,5,0.05,0.015,0.01,TRUE,20,50,FALSE,2.5,1.5,210,Combo: TP 5% + trail 1%
+46,2.0,0.32,3,0.57,0.02,6,15,0,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,15-min bars (baseline)
+46,2.0,0.32,3,0.57,0.02,6,15,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,15-min bars + trail 0.5%
+46,2.0,0.32,3,0.57,0.02,6,15,0.03,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,15-min bars + TP 3%
+46,2.0,0.32,3,0.57,0.02,4,15,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,15-min bars + trail 0.5% + bars=4
+46,2.0,0.32,3,0.57,0.02,6,30,0,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,30-min bars (baseline)
+46,2.0,0.32,3,0.57,0.02,6,30,0,0.01,0.007,TRUE,20,50,FALSE,2.5,1.5,210,30-min bars + trail 0.7%
+46,2.0,0.32,3,0.57,0.02,4,30,0.03,0.01,0,TRUE,20,50,FALSE,2.5,1.5,210,30-min bars + TP 3% + bars=4
+46,1.5,0.32,3,0.57,0.02,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Lower entry 1.5 + trail 0.5%
+46,2.5,0.32,3,0.57,0.02,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Higher entry 2.5 + trail 0.5%
+46,2.0,0.32,3,0.57,0.02,4,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Faster re-entry (bars=4) + trail 0.5%
+46,2.0,0.32,3,0.57,0.02,8,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Slower re-entry (bars=8) + trail 0.5%
+46,2.0,0.32,3,0.57,0.02,10,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Very slow re-entry (bars=10) + trail 0.5%
+46,2.0,0.32,3,0.57,0.02,6,5,0,0.01,0.005,TRUE,20,50,TRUE,2.5,1.5,210,Vol scaling ON + trail 0.5%
+46,2.0,0.32,3,0.57,0.02,6,15,0,0.01,0.005,TRUE,20,50,TRUE,2.5,1.5,210,Vol scaling ON + 15-min + trail 0.5%
+46,2.0,0.25,3,0.57,0.02,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Tighter exit 0.25 + trail 0.5%
+46,2.0,0.40,3,0.57,0.02,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Wider exit 0.40 + trail 0.5%
+46,2.0,0.32,3,0.57,0.015,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Tighter stop 1.5% + trail 0.5%
+46,2.0,0.32,3,0.57,0.025,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Wider stop 2.5% + trail 0.5%
+48,2.0,0.32,3,0.57,0.02,6,5,0,0.01,0.005,TRUE,20,50,FALSE,2.5,1.5,210,Lookback=48 + trail 0.5% (best from v4)
+48,2.0,0.32,3,0.57,0.02,6,15,0.03,0.015,0.01,TRUE,20,50,FALSE,2.5,1.5,210,BEST COMBO: LB=48 + 15min + TP3% + trail 1%

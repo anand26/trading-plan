@@ -230,16 +230,16 @@ class ParameterOptimizer:
         return unique_combinations
     
     def _get_parameter_defaults(self) -> Dict[str, Any]:
-        """Get default parameter values for v4.0 Pairs Ratio Strategy."""
+        """Get default parameter values for v3.1 Pairs Ratio Strategy."""
         return {
             # ==========================================
-            # PAIRS RATIO v4.0 PARAMETERS (PRIMARY)
+            # PAIRS RATIO v3.1 PARAMETERS (PRIMARY)
             # ==========================================
             'algorithm_name': 'TQQQSQQQPairsAlgorithm',
             
             # Z-score parameters
             'zscore_lookback': 46,      # Optimal from v3.2 sweep
-            'entry_zscore': 2.0,        # Enter when |Z| > 2.0 (was 1.5)
+            'entry_zscore': 1.5,        # Enter when |Z| > 1.5
             'exit_zscore': 0.32,        # Exit when |Z| < 0.32
             'stop_zscore': 3.0,         # Stop if spread diverges > 3 std
             
@@ -251,15 +251,7 @@ class ParameterOptimizer:
             
             # Timing
             'max_hold_minutes': 0,      # 0 = no limit (intraday close)
-            'min_bars_between': 6,      # Min 6 bars between trades (was 3)
-            'bar_period_minutes': 5,    # Consolidation bar period (5/15/30)
-            
-            # ==========================================
-            # PROFIT TAKING & TRAILING STOP (v4.0)
-            # ==========================================
-            'take_profit_pct': 0.0,             # 0 = disabled; e.g. 0.02 = 2%
-            'trailing_activation_pct': 0.01,    # Activate trailing stop at 1% profit
-            'trailing_stop_pct': 0.0,           # 0 = disabled; e.g. 0.005 = 0.5% trail from HWM
+            'min_bars_between': 3,      # Min 3 bars between trades
             
             # ==========================================
             # TREND FILTER (QQQ 50/200-day SMA)
@@ -276,11 +268,11 @@ class ParameterOptimizer:
             'drawdown_position_scale': 0.50,
             
             # ==========================================
-            # VOLATILITY SCALING (fixed thresholds v4.0)
+            # VOLATILITY SCALING (off by default)
             # ==========================================
             'enable_vol_scaling': 'false',
-            'vol_scale_high_thresh': 2.5,   # Was 30.0 (never triggered)
-            'vol_scale_med_thresh': 1.5,    # Was 20.0 (never triggered)
+            'vol_scale_high_thresh': 30.0,
+            'vol_scale_med_thresh': 20.0,
             'vol_scale_high_factor': 0.44,
             'vol_scale_med_factor': 0.70,
             
