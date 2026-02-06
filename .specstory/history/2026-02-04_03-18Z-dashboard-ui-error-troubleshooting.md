@@ -7036,7 +7036,7 @@ cd c:\Users\anand\Documents\trading_plan\tests\integration
 
 ---
 
-_**User (2026-02-05 17:41Z)**_
+_**User (2026-02-05 17:42Z)**_
 
 the pause before rollback is locking the databse session , and my query on the db is not working for me as session is locked
 
@@ -7096,7 +7096,310 @@ Actually, the issue is that with autocommit=False, all the inserts are part of a
 2. Pause so user can inspect
 3. Then manually delete the test records (since we already committed, rollback won't work)
 
-Let me update the test to commit first, then clean up manually after.The transaction is holding locks because it's uncommitted. I'll change it to **commit first** (so you can query), then **delete the test data** after the pause: 
+Let me update the test to commit first, then clean up manually after.The transaction is holding locks because it's uncommitted. I'll change it to **commit first** (so you can query), then **delete the test data** after the pause: Done! Now the test will:
+
+1. **Insert all test records**
+2. **COMMIT** (releases locks)
+3. **Show the Session ID** so you can query
+4. **Pause** - you can query freely in another window
+5. Press Enter → **DELETE test records**
+6. **Pause** at end
+
+Run it again:
+```powershell
+.\test_webhook_server.py
+```
+
+While paused, query with:
+```sql
+SELECT * FROM dbo.Sessions WHERE SessionId = 'WH-TEST-xxxxxxxx'
+SELECT * FROM dbo.Trades WHERE SessionId = 'WH-TEST-xxxxxxxx'
+```
+
+---
+
+_**User (2026-02-06 08:18Z)**_
+
+review the schema once , and tell me which all queries i can add to monitor the results
+DECLARE @backtestid VARCHAR(100); -- Declare a variable of appropriate type and size
+DECLARE @outcomeid int;
+
+--SELECT @backtestid= Top 1 OutcomeId FROM BacktestOutcomes ORDER BY 1 DESC;
+SET @outcomeid = (SELECT TOP 1 OutcomeId FROM BacktestOutcomes ORDER BY 1 DESC);
+SET @backtestid = (SELECT TOP 1 BacktestId FROM BacktestOutcomes ORDER BY 1 DESC);
+
+
+-- Now you can use the variable, for example:
+PRINT @backtestid;
+PRINT 'The ID is: ' + CAST(@outcomeid AS VARCHAR(10));
+
+
+Select 'Sessions', * from Sessions S where SessionId=@backtestid
+Select 'BacktestOutcomes', * from BacktestOutcomes where BacktestId=@backtestid
+--Select 'BacktestRuns',* from BacktestRuns where RunID =@backtestid
+Select 'Trades', * from Trades where SessionId=@backtestid order by GrossPnL desc
+Select * from WebhookEvents order by 1 desc
+Select * from DailyPerformance order by 1 desc
+
+---
+
+_**Agent (model copilot/claude-opus-4.5)**_
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#1-1), lines 1 to 300</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#1-1), lines 1 to 300
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#300-300), lines 300 to 600</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#300-300), lines 300 to 600
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#600-600), lines 600 to 900</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#600-600), lines 600 to 900
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#900-900), lines 900 to 1200</summary>
+
+
+Read [](file:///c%3A/Users/anand/Documents/trading_plan/schema.sql#900-900), lines 900 to 1200
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_createFile">
+<details>
+<summary>Tool use: **copilot_createFile**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "c:\\Users\\anand\\Documents\\trading_plan\\database\\monitor_backtest_results.sql",
+  "relativeWorkspacePath": "c:\\Users\\anand\\Documents\\trading_plan\\database\\monitor_backtest_results.sql"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_createFile",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Creating [](file:///c%3A/Users/anand/Documents/trading_plan/database/monitor_backtest_results.sql)",
+  "pastTenseMessage": "Created [](file:///c%3A/Users/anand/Documents/trading_plan/database/monitor_backtest_results.sql)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "-- ============================================================================\n-- BACKTEST MONITORING QUERIES\n-- ============================================================================\n-- Run this script to monitor latest backtest results comprehensively\n-- Usage: Execute in SSMS or Azure Data Studio\n-- ============================================================================\n\nUSE TradingDB;\nGO\n\n-- Variables for the latest backtest\nDECLARE @backtestid VARCHAR(100);\nDECLARE @outcomeid BIGINT;\nDECLARE @strategyid VARCHAR(50);\n\n-- Get latest backtest\nSET @outcomeid = (SELECT TOP 1 OutcomeId FROM BacktestOutcomes ORDER BY OutcomeId DESC);\nSET @backtestid = (SELECT TOP 1 BacktestId FROM BacktestOutcomes ORDER BY OutcomeId DESC);\nSET @strategyid = (SELECT TOP 1 StrategyId FROM BacktestOutcomes ORDER BY OutcomeId DESC);\n\nPRINT '============================================================================';\nPRINT 'LATEST BACKTEST MONITORING REPORT';\nPRINT '============================================================================';\nPRINT 'BacktestId: ' + ISNULL(@backtestid, 'N/A');\nPRINT 'OutcomeId: ' + CAST(ISNULL(@outcomeid, 0) AS VARCHAR(20));\nPRINT 'StrategyId: ' + ISNULL(@strategyid, 'N/A');\nPRINT '============================================================================';\nPRINT '';\n\n-- ============================================================================\n-- 1. BACKTEST SUMMARY (BacktestOutcomes)\n-- ============================================================================\nPRINT '&gt;&gt;&gt; 1. BACKTEST SUMMARY';\nSELECT \n    'BacktestOutcomes' as TableName,\n    BacktestId,\n    StrategyId,\n    StartDate,\n    EndDate,\n    TradingDays,\n    CAST(TotalReturn * 100 AS DECIMAL(10,2)) AS ReturnPct,\n    CAST(SharpeRatio AS DECIMAL(10,3)) AS Sharpe,\n    CAST(SortinoRatio AS DECIMAL(10,3)) AS Sortino,\n    CAST(MaxDrawdown * 100 AS DECIMAL(10,2)) AS MaxDDPct,\n    TotalTrades,\n    WinningTrades,\n    LosingTrades,\n    CAST(WinRate * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(ProfitFactor AS DECIMAL(10,2)) AS ProfitFactor,\n    CAST(TotalProfit AS DECIMAL(18,2)) AS TotalProfit,\n    CAST(TotalLoss AS DECIMAL(18,2)) AS TotalLoss,\n    CAST(AverageWin AS DECIMAL(18,2)) AS AvgWin,\n    CAST(AverageLoss AS DECIMAL(18,2)) AS AvgLoss,\n    CAST(Expectancy AS DECIMAL(10,2)) AS Expectancy,\n    PerformanceGrade,\n    IsSuccessful,\n    ExecutionTimeSeconds,\n    CreatedAt\nFROM BacktestOutcomes \nWHERE BacktestId = @backtestid;\n\n-- ============================================================================\n-- 2. SESSION INFO (Sessions)\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 2. SESSION INFO';\nSELECT \n    'Sessions' AS TableName,\n    SessionId,\n    SessionType,\n    StrategyId,\n    Status,\n    StartTime,\n    EndTime,\n    CAST(TotalReturn * 100 AS DECIMAL(10,2)) AS ReturnPct,\n    CAST(SharpeRatio AS DECIMAL(10,3)) AS Sharpe,\n    CAST(MaxDrawdown * 100 AS DECIMAL(10,2)) AS MaxDDPct,\n    TotalTrades,\n    CAST(WinRate * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    AlgorithmVersion,\n    Notes\nFROM Sessions \nWHERE SessionId = @backtestid;\n\n-- ============================================================================\n-- 3. TOP 10 WINNING TRADES\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 3. TOP 10 WINNING TRADES';\nSELECT TOP 10\n    'TopWins' AS Category,\n    TradeId,\n    Symbol,\n    Direction,\n    EntryTime,\n    ExitTime,\n    CAST(EntryPrice AS DECIMAL(18,4)) AS EntryPrice,\n    CAST(ExitPrice AS DECIMAL(18,4)) AS ExitPrice,\n    CAST(EntryQuantity AS DECIMAL(18,2)) AS Qty,\n    CAST(GrossPnL AS DECIMAL(18,2)) AS GrossPnL,\n    CAST(PnLPercent AS DECIMAL(10,2)) AS PnLPct,\n    ExitReason,\n    DurationMinutes\nFROM Trades \nWHERE SessionId = @backtestid \n  AND GrossPnL &gt; 0\nORDER BY GrossPnL DESC;\n\n-- ============================================================================\n-- 4. TOP 10 LOSING TRADES\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 4. TOP 10 LOSING TRADES';\nSELECT TOP 10\n    'TopLosses' AS Category,\n    TradeId,\n    Symbol,\n    Direction,\n    EntryTime,\n    ExitTime,\n    CAST(EntryPrice AS DECIMAL(18,4)) AS EntryPrice,\n    CAST(ExitPrice AS DECIMAL(18,4)) AS ExitPrice,\n    CAST(EntryQuantity AS DECIMAL(18,2)) AS Qty,\n    CAST(GrossPnL AS DECIMAL(18,2)) AS GrossPnL,\n    CAST(PnLPercent AS DECIMAL(10,2)) AS PnLPct,\n    ExitReason,\n    DurationMinutes\nFROM Trades \nWHERE SessionId = @backtestid \n  AND GrossPnL &lt; 0\nORDER BY GrossPnL ASC;\n\n-- ============================================================================\n-- 5. TRADE SUMMARY BY SYMBOL\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 5. TRADE SUMMARY BY SYMBOL';\nSELECT \n    Symbol,\n    COUNT(*) AS TotalTrades,\n    SUM(CASE WHEN GrossPnL &gt; 0 THEN 1 ELSE 0 END) AS Wins,\n    SUM(CASE WHEN GrossPnL &lt; 0 THEN 1 ELSE 0 END) AS Losses,\n    CAST(SUM(CASE WHEN GrossPnL &gt; 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS TotalPnL,\n    CAST(AVG(GrossPnL) AS DECIMAL(18,2)) AS AvgPnL,\n    CAST(AVG(CASE WHEN GrossPnL &gt; 0 THEN GrossPnL END) AS DECIMAL(18,2)) AS AvgWin,\n    CAST(AVG(CASE WHEN GrossPnL &lt; 0 THEN GrossPnL END) AS DECIMAL(18,2)) AS AvgLoss,\n    CAST(MAX(GrossPnL) AS DECIMAL(18,2)) AS LargestWin,\n    CAST(MIN(GrossPnL) AS DECIMAL(18,2)) AS LargestLoss,\n    AVG(DurationMinutes) AS AvgHoldingMins\nFROM Trades \nWHERE SessionId = @backtestid\nGROUP BY Symbol;\n\n-- ============================================================================\n-- 6. TRADE SUMMARY BY EXIT REASON\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 6. TRADE SUMMARY BY EXIT REASON';\nSELECT \n    ExitReason,\n    COUNT(*) AS TotalTrades,\n    SUM(CASE WHEN GrossPnL &gt; 0 THEN 1 ELSE 0 END) AS Wins,\n    SUM(CASE WHEN GrossPnL &lt; 0 THEN 1 ELSE 0 END) AS Losses,\n    CAST(SUM(CASE WHEN GrossPnL &gt; 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS TotalPnL,\n    CAST(AVG(GrossPnL) AS DECIMAL(18,2)) AS AvgPnL\nFROM Trades \nWHERE SessionId = @backtestid\nGROUP BY ExitReason\nORDER BY TotalPnL DESC;\n\n-- ============================================================================\n-- 7. TRADE SUMMARY BY DIRECTION\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 7. TRADE SUMMARY BY DIRECTION';\nSELECT \n    Direction,\n    COUNT(*) AS TotalTrades,\n    SUM(CASE WHEN GrossPnL &gt; 0 THEN 1 ELSE 0 END) AS Wins,\n    SUM(CASE WHEN GrossPnL &lt; 0 THEN 1 ELSE 0 END) AS Losses,\n    CAST(SUM(CASE WHEN GrossPnL &gt; 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS TotalPnL,\n    CAST(AVG(GrossPnL) AS DECIMAL(18,2)) AS AvgPnL,\n    CAST(SUM(CASE WHEN GrossPnL &gt; 0 THEN GrossPnL ELSE 0 END) AS DECIMAL(18,2)) AS GrossProfit,\n    CAST(SUM(CASE WHEN GrossPnL &lt; 0 THEN ABS(GrossPnL) ELSE 0 END) AS DECIMAL(18,2)) AS GrossLoss\nFROM Trades \nWHERE SessionId = @backtestid\nGROUP BY Direction;\n\n-- ============================================================================\n-- 8. DAILY PERFORMANCE (sorted by P&amp;L)\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 8. DAILY PERFORMANCE (Best/Worst Days)';\nSELECT TOP 20\n    Date,\n    CAST(DailyPnL AS DECIMAL(18,2)) AS DailyPnL,\n    CAST(DailyPnLPercent AS DECIMAL(10,4)) AS DailyPnLPct,\n    NumTrades,\n    WinningTrades,\n    LosingTrades,\n    CAST(GrossProfit AS DECIMAL(18,2)) AS GrossProfit,\n    CAST(GrossLoss AS DECIMAL(18,2)) AS GrossLoss,\n    MarketRegime\nFROM DailyPerformance \nWHERE SessionId = @backtestid\nORDER BY DailyPnL DESC;\n\n-- ============================================================================\n-- 9. TRADE DISTRIBUTION BY HOUR\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 9. TRADE DISTRIBUTION BY HOUR';\nSELECT \n    DATEPART(HOUR, EntryTime) AS EntryHour,\n    COUNT(*) AS TotalTrades,\n    SUM(CASE WHEN GrossPnL &gt; 0 THEN 1 ELSE 0 END) AS Wins,\n    SUM(CASE WHEN GrossPnL &lt; 0 THEN 1 ELSE 0 END) AS Losses,\n    CAST(SUM(CASE WHEN GrossPnL &gt; 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS TotalPnL,\n    CAST(AVG(GrossPnL) AS DECIMAL(18,2)) AS AvgPnL\nFROM Trades \nWHERE SessionId = @backtestid\nGROUP BY DATEPART(HOUR, EntryTime)\nORDER BY EntryHour;\n\n-- ============================================================================\n-- 10. TRADE DISTRIBUTION BY DAY OF WEEK\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 10. TRADE DISTRIBUTION BY DAY OF WEEK';\nSELECT \n    DATENAME(WEEKDAY, EntryTime) AS DayOfWeek,\n    DATEPART(WEEKDAY, EntryTime) AS DayNum,\n    COUNT(*) AS TotalTrades,\n    SUM(CASE WHEN GrossPnL &gt; 0 THEN 1 ELSE 0 END) AS Wins,\n    SUM(CASE WHEN GrossPnL &lt; 0 THEN 1 ELSE 0 END) AS Losses,\n    CAST(SUM(CASE WHEN GrossPnL &gt; 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS TotalPnL,\n    CAST(AVG(GrossPnL) AS DECIMAL(18,2)) AS AvgPnL\nFROM Trades \nWHERE SessionId = @backtestid\nGROUP BY DATENAME(WEEKDAY, EntryTime), DATEPART(WEEKDAY, EntryTime)\nORDER BY DayNum;\n\n-- ============================================================================\n-- 11. ORDERS COUNT\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 11. ORDERS SUMMARY';\nSELECT \n    COUNT(*) AS TotalOrders,\n    SUM(CASE WHEN Direction = 'buy' THEN 1 ELSE 0 END) AS BuyOrders,\n    SUM(CASE WHEN Direction = 'sell' THEN 1 ELSE 0 END) AS SellOrders,\n    SUM(CASE WHEN Status = 'filled' THEN 1 ELSE 0 END) AS FilledOrders,\n    SUM(CASE WHEN Status = 'cancelled' THEN 1 ELSE 0 END) AS CancelledOrders\nFROM Orders \nWHERE Tag LIKE '%' + @backtestid + '%';\n\n-- ============================================================================\n-- 12. MARKET REGIMES DURING BACKTEST\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 12. MARKET REGIMES DURING BACKTEST';\nSELECT \n    Regime,\n    COUNT(*) AS DaysInRegime,\n    MIN(Date) AS FirstDate,\n    MAX(Date) AS LastDate,\n    CAST(AVG(Confidence) AS DECIMAL(5,2)) AS AvgConfidence,\n    CAST(AVG(VIX_Close) AS DECIMAL(10,2)) AS AvgVIX\nFROM MarketRegimes\nWHERE Date BETWEEN \n    (SELECT StartDate FROM BacktestOutcomes WHERE BacktestId = @backtestid) AND\n    (SELECT EndDate FROM BacktestOutcomes WHERE BacktestId = @backtestid)\nGROUP BY Regime\nORDER BY DaysInRegime DESC;\n\n-- ============================================================================\n-- 13. CONSECUTIVE WINS/LOSSES\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 13. WIN/LOSS STREAKS';\nWITH TradeSequence AS (\n    SELECT \n        TradeId,\n        GrossPnL,\n        CASE WHEN GrossPnL &gt; 0 THEN 'WIN' ELSE 'LOSS' END AS Outcome,\n        ROW_NUMBER() OVER (ORDER BY ExitTime) - \n        ROW_NUMBER() OVER (PARTITION BY CASE WHEN GrossPnL &gt; 0 THEN 1 ELSE 0 END ORDER BY ExitTime) AS Grp\n    FROM Trades\n    WHERE SessionId = @backtestid AND ExitTime IS NOT NULL\n)\nSELECT \n    Outcome,\n    MAX(StreakLen) AS MaxConsecutive,\n    AVG(StreakLen) AS AvgStreak\nFROM (\n    SELECT Outcome, Grp, COUNT(*) AS StreakLen\n    FROM TradeSequence\n    GROUP BY Outcome, Grp\n) streaks\nGROUP BY Outcome;\n\n-- ============================================================================\n-- 14. HOLDING TIME ANALYSIS\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 14. HOLDING TIME ANALYSIS';\nSELECT \n    CASE \n        WHEN DurationMinutes &lt;= 5 THEN '0-5 min'\n        WHEN DurationMinutes &lt;= 15 THEN '5-15 min'\n        WHEN DurationMinutes &lt;= 30 THEN '15-30 min'\n        WHEN DurationMinutes &lt;= 60 THEN '30-60 min'\n        WHEN DurationMinutes &lt;= 120 THEN '1-2 hours'\n        ELSE '2+ hours'\n    END AS HoldingBucket,\n    COUNT(*) AS Trades,\n    CAST(SUM(CASE WHEN GrossPnL &gt; 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS TotalPnL,\n    CAST(AVG(GrossPnL) AS DECIMAL(18,2)) AS AvgPnL\nFROM Trades\nWHERE SessionId = @backtestid AND DurationMinutes IS NOT NULL\nGROUP BY \n    CASE \n        WHEN DurationMinutes &lt;= 5 THEN '0-5 min'\n        WHEN DurationMinutes &lt;= 15 THEN '5-15 min'\n        WHEN DurationMinutes &lt;= 30 THEN '15-30 min'\n        WHEN DurationMinutes &lt;= 60 THEN '30-60 min'\n        WHEN DurationMinutes &lt;= 120 THEN '1-2 hours'\n        ELSE '2+ hours'\n    END\nORDER BY MIN(DurationMinutes);\n\n-- ============================================================================\n-- 15. RECENT BACKTEST COMPARISON (Last 10)\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 15. RECENT BACKTEST COMPARISON (Last 10)';\nSELECT TOP 10\n    OutcomeId,\n    BacktestId,\n    StrategyId,\n    StartDate,\n    EndDate,\n    CAST(TotalReturn * 100 AS DECIMAL(10,2)) AS ReturnPct,\n    CAST(SharpeRatio AS DECIMAL(10,3)) AS Sharpe,\n    CAST(MaxDrawdown * 100 AS DECIMAL(10,2)) AS MaxDDPct,\n    TotalTrades,\n    CAST(WinRate * 100 AS DECIMAL(10,2)) AS WinRatePct,\n    CAST(ProfitFactor AS DECIMAL(10,2)) AS ProfitFactor,\n    PerformanceGrade,\n    IsSuccessful,\n    CreatedAt\nFROM BacktestOutcomes\nORDER BY OutcomeId DESC;\n\n-- ============================================================================\n-- 16. PARAMETERS USED (from JSON)\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 16. PARAMETERS USED';\nSELECT \n    BacktestId,\n    ParametersJson\nFROM BacktestOutcomes \nWHERE BacktestId = @backtestid;\n\n-- ============================================================================\n-- 17. EQUITY CURVE DATA (DailyPerformance cumulative)\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 17. EQUITY CURVE (Cumulative P&amp;L by Date)';\nSELECT \n    Date,\n    CAST(DailyPnL AS DECIMAL(18,2)) AS DailyPnL,\n    CAST(SUM(DailyPnL) OVER (ORDER BY Date) AS DECIMAL(18,2)) AS CumulativePnL,\n    NumTrades,\n    MarketRegime\nFROM DailyPerformance \nWHERE SessionId = @backtestid\nORDER BY Date;\n\n-- ============================================================================\n-- 18. WEBHOOK EVENTS (if any)\n-- ============================================================================\nPRINT '';\nPRINT '&gt;&gt;&gt; 18. WEBHOOK EVENTS';\nSELECT TOP 20 * \nFROM WebhookEvents \nWHERE SessionId = @backtestid\nORDER BY EventId DESC;\n\nPRINT '';\nPRINT '============================================================================';\nPRINT 'END OF BACKTEST MONITORING REPORT';\nPRINT '============================================================================';\nGO\n",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+The user wants me to review the database schema and suggest monitoring queries for backtest results. Let me first check the schema to understand all available tables and their relationships.Now I have a good understanding of the schema. Let me create a comprehensive monitoring query script for you: I've created a comprehensive monitoring script at `monitor_backtest_results.sql`. Here's a summary of the **18 queries** included:
+
+| # | Query | Purpose |
+|---|-------|---------|
+| 1 | **BacktestOutcomes** | Main metrics: Return, Sharpe, MaxDD, WinRate, ProfitFactor |
+| 2 | **Sessions** | Session info with status and config |
+| 3 | **Top 10 Winning Trades** | Best trades by P&L |
+| 4 | **Top 10 Losing Trades** | Worst trades by P&L |
+| 5 | **Summary by Symbol** | TQQQ vs SQQQ performance |
+| 6 | **Summary by Exit Reason** | Stop loss vs normal exit effectiveness |
+| 7 | **Summary by Direction** | LONG vs SHORT performance |
+| 8 | **Daily Performance** | Best/worst days sorted by P&L |
+| 9 | **By Hour** | Which hours perform best |
+| 10 | **By Day of Week** | Which days perform best |
+| 11 | **Orders Summary** | Buy/Sell/Filled/Cancelled counts |
+| 12 | **Market Regimes** | Trending/Ranging/Volatile distribution |
+| 13 | **Win/Loss Streaks** | Max consecutive wins/losses |
+| 14 | **Holding Time Analysis** | Performance by trade duration |
+| 15 | **Recent Backtest Comparison** | Last 10 backtests side-by-side |
+| 16 | **Parameters Used** | JSON parameters for the backtest |
+| 17 | **Equity Curve** | Cumulative P&L over time |
+| 18 | **Webhook Events** | Related webhook events |
+
+Run it in SSMS:
+```sql
+:r C:\Users\anand\Documents\trading_plan\database\monitor_backtest_results.sql
+```
+
+Or just open and execute the file directly!
+
+---
+
+_**User (2026-02-06 18:37Z)**_
+
+create a new branch , check in everything we have so far, and check why this script is not working
+
+---
+
+_**Agent (model copilot/claude-opus-4.5)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="run_in_terminal">
+<details>
+<summary>Tool use: **run_in_terminal**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "terminal",
+  "terminalToolSessionId": "a772c977-dbb3-4510-88e5-96b2967c304f",
+  "terminalCommandId": "tool-e993f6ea-3800-4f51-8313-efcac3f648c5",
+  "commandLine": {
+    "original": "cd C:\\Users\\anand\\Documents\\trading_plan; git status",
+    "toolEdited": "git status"
+  },
+  "language": "pwsh",
+  "terminalCommandState": {
+    "exitCode": 0,
+    "timestamp": 1770403040505,
+    "duration": 108
+  },
+  "terminalCommandUri": {
+    "$mid": 1,
+    "path": "/fa11aaaa81af9c924643bc92dfb48652/10",
+    "scheme": "vscode-terminal",
+    "query": "command=tool-e993f6ea-3800-4f51-8313-efcac3f648c5"
+  },
+  "terminalCommandOutput": {
+    "text": "On branch feature/webhook-websocket-fixes-2026-02-04\r\nYour branch is up to date with 'origin/feature/webhook-websocket-fixes-2026-02-04'.\r\n\r\nChanges not staged for commit:\r\n  (use \"git add/rm &lt;file&gt;...\" to update what will be committed)\r\n  (use \"git restore &lt;file&gt;...\" to discard changes in working directory)\r\n        \u001b[31mmodified:   .specstory/history/2026-02-04_03-18Z-dashboard-ui-error-troubleshooting.md\r\n\u001b[0m        \u001b[31mmodified:   algorithms/TQQQSQQQPairsAlgorithm.py\r\n\u001b[0m        \u001b[31mdeleted:    backtest/F_parameter_combinations_v3.1_focused.csv\r\n\u001b[0m        \u001b[31mmodified:   backtest/backtest_runner.py\r\n\u001b[0m        \u001b[31mmodified:   backtest/optimization_results.json\r\n\u001b[0m        \u001b[31mmodified:   backtest/parameter_combinations_v3.1_focused.csv\r\n\u001b[0m        \u001b[31mmodified:   backtest/parameter_optimizer.py\r\n\u001b[0m        \u001b[31mmodified:   convert_databento_to_lean.py\r\n\u001b[0m        \u001b[31mmodified:   tradingview/TQQQ_SQQQ_Pairs_Strategy.pine\r\n\r\n\u001b[0mUntracked files:\r\n  (use \"git add &lt;file&gt;...\" to include in what will be committed)\r\n        \u001b[31m.history/algorithms/STRATEGY_SUMMARY_20260206023834.md\r\n\u001b[0m        \u001b[31m.history/algorithms/STRATEGY_SUMMARY_20260206024035.md\r\n\u001b[0m        \u001b[31m.history/algorithms/TQQQSQQQPairsAlgorithm_20260206022722.py\r\n\u001b[0m        \u001b[31m.history/algorithms/TQQQSQQQPairsAlgorithm_20260206023342.py\r\n\u001b[0m        \u001b[31m.history/algorithms/TQQQSQQQPairsAlgorithm_20260206023358.py\r\n\u001b[0m        \u001b[31m.history/algorithms/TQQQSQQQPairsAlgorithm_20260206023421.py\r\n\u001b[0m        \u001b[31m.history/algorithms/TQQQSQQQPairsAlgorithm_20260206024034.py\r\n\u001b[0m        \u001b[31m.history/analyze_databento_segments_20260206045503.py\r\n\u001b[0m        \u001b[31m.history/analyze_databento_segments_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/analyze_v4_deep_20260206121844.py\r\n\u001b[0m        \u001b[31m.history/analyze_v4_deep_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/analyze_v4_results_20260206121738.py\r\n\u001b[0m        \u001b[31m.history/analyze_v4_results_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/backtest/analyze_trend_results_20260206034427.py\r\n\u001b[0m        \u001b[31m.history/backtest/analyze_trend_results_20260206035748.py\r\n\u001b[0m        \u001b[31m.history/backtest/backtest_runner_20260206023501.py\r\n\u001b[0m        \u001b[31m.history/backtest/backtest_runner_20260206024035.py\r\n\u001b[0m        \u001b[31m.history/backtest/parameter_combinations_v4.0_trend_filter_20260206025105.csv\r\n\u001b[0m        \u001b[31m.history/backtest/parameter_combinations_v4.0_trend_filter_20260206025233.csv\r\n\u001b[0m        \u001b[31m.history/backtest/parameter_optimizer_20260206025041.py\r\n\u001b[0m        \u001b[31m.history/backtest/parameter_optimizer_20260206025233.py\r\n\u001b[0m        \u001b[31m.history/check_databento_source_20260206045219.py\r\n\u001b[0m        \u001b[31m.history/check_databento_source_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/check_lean_data_files_20260206045120.py\r\n\u001b[0m        \u001b[31m.history/check_lean_data_files_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/check_nov_backtest_20260206044915.py\r\n\u001b[0m        \u001b[31m.history/check_nov_backtest_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/check_order_events_20260206043251.py\r\n\u001b[0m        \u001b[31m.history/check_order_events_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/check_raw_vs_lean_20260206040750.py\r\n\u001b[0m        \u001b[31m.history/check_raw_vs_lean_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/check_sqqq_monthly_20260206043618.py\r\n\u001b[0m        \u001b[31m.history/check_sqqq_monthly_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/check_sqqq_prices_20260206040457.py\r\n\u001b[0m        \u001b[31m.history/check_sqqq_prices_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/convert_databento_to_lean_20260206052107.py\r\n\u001b[0m        \u001b[31m.history/convert_databento_to_lean_20260206053705.py\r\n\u001b[0m        \u001b[31m.history/convert_databento_to_lean_20260206053728.py\r\n\u001b[0m        \u001b[31m.history/convert_databento_to_lean_20260206133101.py\r\n\u001b[8C.history/database/monitor_backtest_results_20260206031842.sql\r\n\u001b[0m        \u001b[31m.history/database/monitor_backtest_results_20260206031901.sql\r\n\u001b[0m        \u001b[31m.history/find_price_jumps_20260206045327.py\r\n\u001b[0m        \u001b[31m.history/find_price_jumps_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/get_split_ref_prices_20260206053432.py\r\n\u001b[0m        \u001b[31m.history/get_split_ref_prices_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/tradingview/TQQQ_SQQQ_Pairs_Strategy_20260206024523.pine\u001b[0m       \r\n        \u001b[31m.history/tradingview/TQQQ_SQQQ_Pairs_Strategy_20260206024547.pine\u001b[0m       \r\n        \u001b[31m.history/verify_correction_20260206052616.py\r\n\u001b[0m        \u001b[31m.history/verify_correction_20260206133101.py\r\n\u001b[0m        \u001b[31m.history/verify_final_20260206054404.py\r\n\u001b[0m        \u001b[31m.history/verify_final_20260206133101.py\r\n\u001b[0m        \u001b[31m.specstory/history/2026-02-06_04-52Z-automated-trading-strategy-insights.md\r\n\u001b[0m        \u001b[31mData/databento/xnas-itch-20180501-20260114.ohlcv-1m.SQQQ.csv\r\n\u001b[0m        \u001b[31malgorithms/STRATEGY_SUMMARY.md\r\n\u001b[0m        \u001b[31manalyze_databento_segments.py\r\n\u001b[0m        \u001b[31manalyze_v4_deep.py\r\n\u001b[0m        \u001b[31manalyze_v4_results.py\r\n\u001b[0m        \u001b[31mbacktest/analyze_trend_results.py\r\n\u001b[0m        \u001b[31mbacktest/parameter_combinations_v4.0_trend_filter - Copy.csv\r\n\u001b[0m        \u001b[31mbacktest/parameter_combinations_v4.0_trend_filter.csv\r\n\u001b[0m        \u001b[31mbacktest/trend_filter_results.csv\r\n\u001b[0m        \u001b[31mbacktest/trend_filter_results_1.csv\r\n\u001b[0m        \u001b[31mcheck_databento_source.py\r\n\u001b[0m        \u001b[31mcheck_lean_data_files.py\r\n\u001b[0m        \u001b[31mcheck_nov_backtest.py\r\n\u001b[0m        \u001b[31mcheck_order_events.py\r\n\u001b[0m        \u001b[31mcheck_raw_vs_lean.py\r\n\u001b[0m        \u001b[31mcheck_sqqq_monthly.py\r\n\u001b[0m        \u001b[31mcheck_sqqq_prices.py\r\n\u001b[0m        \u001b[31mdatabase/monitor_backtest_results.sql\r\n\u001b[0m        \u001b[31mfind_price_jumps.py\r\n\u001b[0m        \u001b[31mget_split_ref_prices.py\r\n\u001b[0m        \u001b[31mverify_correction.py\r\n\u001b[0m        \u001b[31mverify_final.py\r\n\r\n\u001b[0mno changes added to commit (use \"git add\" and/or \"git commit -a\")",
+    "lineCount": 99
+  },
+  "terminalTheme": {
+    "background": "#181818",
+    "foreground": "#cccccc"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "run_in_terminal",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Run in Terminal\"",
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="run_in_terminal">
+<details>
+<summary>Tool use: **run_in_terminal**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "terminal",
+  "terminalToolSessionId": "d94ee5df-2a3c-4a68-8875-10bcdd8d7101",
+  "terminalCommandId": "tool-f31951c6-6370-4fd4-9174-f433257f8e56",
+  "commandLine": {
+    "original": "cd C:\\Users\\anand\\Documents\\trading_plan; .\\create_feature_branch.ps1",
+    "toolEdited": ".\\create_feature_branch.ps1"
+  },
+  "language": "pwsh",
+  "terminalCommandState": {
+    "timestamp": 1770403050448
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "run_in_terminal",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Using \"Run in Terminal\"",
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+The user wants to:
+1. Create a new branch
+2. Check in everything
+3. Debug why the script isn't working
+
+Let me first run the script to see what error we get.
 
 ---
 

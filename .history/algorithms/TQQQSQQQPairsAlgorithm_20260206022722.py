@@ -185,41 +185,34 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         self.sqqq = sqqq_security.Symbol
         
         # =====================================================
-        # QQQ for TREND FILTER + VOL SCALING (minute data → daily consolidator)
+        # QQQ DAILY TREND FILTER (50/200-day SMA)
         # =====================================================
-        if self.trend_filter_enabled or self.enable_vol_scaling:
-            qqq_security = self.AddEquity("QQQ", Resolution.Minute)
+        if self.trend_filter_enabled:
+            qqq_security = self.AddEquity("QQQ", Resolution.Daily)
             qqq_security.SetDataNormalizationMode(DataNormalizationMode.Raw)
             self.qqq = qqq_security.Symbol
-            
-            # Daily consolidator: aggregates minute bars → daily bars
-            self.qqq_daily_consolidator = TradeBarConsolidator(timedelta(days=1))
-            self.qqq_daily_consolidator.DataConsolidated += self.OnQQQDailyBarConsolidated
-            self.SubscriptionManager.AddConsolidator(self.qqq, self.qqq_daily_consolidator)
-            
-            # Manual rolling SMAs (deque-based, fed by daily consolidator)
-            self.qqq_daily_closes: deque = deque(maxlen=self.sma_slow_period)  # sized to the larger SMA
-            self.qqq_sma_fast_value: float = 0.0
-            self.qqq_sma_slow_value: float = 0.0
-            self.qqq_sma_ready: bool = False
-            
-            # Manual ATR tracking for vol scaling (20-day)
-            self.qqq_daily_highs: deque = deque(maxlen=20)
-            self.qqq_daily_lows: deque = deque(maxlen=20)
-            self.qqq_daily_prev_close: float = 0.0
-            self.qqq_atr_value: float = 0.0
-            self.qqq_atr_ready: bool = False
-            
-            self.Log(f"[INIT] QQQ subscribed at Minute resolution, consolidating to Daily")
-            self.Log(f"[INIT] Trend filter: SMA({self.sma_fast_period}) / SMA({self.sma_slow_period})")
+            self.qqq_sma_fast = self.SMA(self.qqq, self.sma_fast_period, Resolution.Daily)
+            self.qqq_sma_slow = self.SMA(self.qqq, self.sma_slow_period, Resolution.Daily)
+            self.Log(f"[INIT] QQQ trend filter initialized: SMA({self.sma_fast_period}) / SMA({self.sma_slow_period})")
         else:
             self.qqq = None
-            self.qqq_daily_closes = deque()
-            self.qqq_sma_ready = False
-            self.qqq_atr_ready = False
+            self.qqq_sma_fast = None
+            self.qqq_sma_slow = None
         
         # =====================================================
-        # CONSOLIDATORS (5-minute bars for TQQQ/SQQQ)
+        # QQQ ATR for volatility scaling (optional)
+        # =====================================================
+        if self.enable_vol_scaling:
+            if self.qqq is None:
+                qqq_security = self.AddEquity("QQQ", Resolution.Daily)
+                qqq_security.SetDataNormalizationMode(DataNormalizationMode.Raw)
+                self.qqq = qqq_security.Symbol
+            self.qqq_atr = self.ATR(self.qqq, 20, MovingAverageType.Simple, Resolution.Daily)
+        else:
+            self.qqq_atr = None
+        
+        # =====================================================
+        # CONSOLIDATORS (5-minute bars)
         # =====================================================
         self.bar_period = timedelta(minutes=5)
         
@@ -335,51 +328,6 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         self.last_sqqq_bar = bar
         self.TryProcessSignals()
     
-    def OnQQQDailyBarConsolidated(self, sender, bar: TradeBar) -> None:
-        """Handle QQQ daily bar — update rolling SMAs and ATR."""
-        close = bar.Close
-        high = bar.High
-        low = bar.Low
-        
-        # Update rolling closes for SMA calculation
-        self.qqq_daily_closes.append(close)
-        
-        n = len(self.qqq_daily_closes)
-        closes_list = list(self.qqq_daily_closes)
-        
-        # Calculate SMA fast (e.g., 50-day)
-        if n >= self.sma_fast_period:
-            self.qqq_sma_fast_value = sum(closes_list[-self.sma_fast_period:]) / self.sma_fast_period
-        
-        # Calculate SMA slow (e.g., 200-day)
-        if n >= self.sma_slow_period:
-            self.qqq_sma_slow_value = sum(closes_list) / self.sma_slow_period
-            self.qqq_sma_ready = True
-        
-        # Update ATR for vol scaling
-        if self.enable_vol_scaling:
-            self.qqq_daily_highs.append(high)
-            self.qqq_daily_lows.append(low)
-            
-            if self.qqq_daily_prev_close > 0 and len(self.qqq_daily_highs) >= 20:
-                # Calculate True Range for each day, then average
-                tr_values = []
-                highs = list(self.qqq_daily_highs)
-                lows = list(self.qqq_daily_lows)
-                # We only have current bar's prev_close, so use ATR approximation
-                # TR = max(H-L, |H-prevC|, |L-prevC|) — use H-L as simplified TR
-                for i in range(len(highs)):
-                    tr_values.append(highs[i] - lows[i])
-                self.qqq_atr_value = sum(tr_values) / len(tr_values)
-                self.qqq_atr_ready = True
-            
-            self.qqq_daily_prev_close = close
-        
-        # Log daily update
-        sma_f = f"{self.qqq_sma_fast_value:.2f}" if n >= self.sma_fast_period else "warming"
-        sma_s = f"{self.qqq_sma_slow_value:.2f}" if self.qqq_sma_ready else "warming"
-        self.Debug(f"[QQQ DAILY] {bar.EndTime.date()} Close={close:.2f}, SMA{self.sma_fast_period}={sma_f}, SMA{self.sma_slow_period}={sma_s}, Days={n}/{self.sma_slow_period}")
-    
     def TryProcessSignals(self) -> None:
         """Process signals when both bars are available"""
         if self.IsWarmingUp:
@@ -459,22 +407,22 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
     # =========================================================
     
     def UpdateTrendRegime(self) -> None:
-        """Update trend regime from QQQ daily SMAs (computed from minute→daily consolidator).
+        """Update trend regime from QQQ daily SMAs.
         Uptrend: QQQ > SMA50 AND QQQ > SMA200 → only TQQQ entries
         Downtrend: QQQ < SMA50 AND QQQ < SMA200 → only SQQQ entries
         Neutral: between the two → both directions allowed
         """
-        if not self.trend_filter_enabled or self.qqq is None:
+        if not self.trend_filter_enabled or self.qqq_sma_fast is None or self.qqq_sma_slow is None:
             self.current_trend = TrendRegime.NEUTRAL
             return
         
-        if not self.qqq_sma_ready:
+        if not self.qqq_sma_fast.IsReady or not self.qqq_sma_slow.IsReady:
             self.current_trend = TrendRegime.UNKNOWN
             return
         
         qqq_price = self.Securities[self.qqq].Price
-        sma_fast = self.qqq_sma_fast_value
-        sma_slow = self.qqq_sma_slow_value
+        sma_fast = self.qqq_sma_fast.Current.Value
+        sma_slow = self.qqq_sma_slow.Current.Value
         
         if qqq_price > sma_fast and qqq_price > sma_slow:
             self.current_trend = TrendRegime.UPTREND
@@ -493,12 +441,12 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
             self.Log(f"[RISK] Drawdown mode active, position size reduced to {size:.0%}")
         
         # Volatility scaling (optional, configurable)
-        if self.enable_vol_scaling and self.qqq_atr_ready and self.qqq is not None:
+        if self.enable_vol_scaling and self.qqq_atr is not None and self.qqq_atr.IsReady:
             qqq_price = self.Securities[self.qqq].Price
             if qqq_price > 0:
                 # ATR as % of price = realized volatility proxy
-                atr_pct = (self.qqq_atr_value / qqq_price) * 100
-                # Scale: >high thresh → high factor, >med thresh → med factor, else full
+                atr_pct = (self.qqq_atr.Current.Value / qqq_price) * 100
+                # Scale: >30% vol → high factor, >20% → med factor, else full
                 if atr_pct > self.vol_scale_high_thresh:
                     size *= self.vol_scale_high_factor
                     self.Log(f"[VOL] High vol ({atr_pct:.1f}%), position scaled to {size:.0%}")

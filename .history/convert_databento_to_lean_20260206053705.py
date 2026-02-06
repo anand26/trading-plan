@@ -75,10 +75,21 @@ def decompress_and_read_zst(zst_path: str) -> list:
 def convert_databento_to_lean(input_zst: str, output_dir: str, symbol: str):
     """Convert a databento zstd CSV file to LEAN format ZIP files.
     
-    Passes through raw prices without any adjustment. Split handling is
-    done by LEAN via factor files, not by this converter.
+    Applies split de-adjustment to produce raw (unadjusted) prices.
     """
     symbol_lower = symbol.lower()
+    symbol_upper = symbol.upper()
+    
+    # Build correction ranges for this symbol
+    correction_ranges = build_correction_ranges(symbol_upper)
+    if correction_ranges:
+        print(f"  Split correction ranges for {symbol_upper}:")
+        for start, end, factor in correction_ranges:
+            start_label = start if start else "DATA_START"
+            print(f"    {start_label} to {end}: multiply by {factor:.1f}")
+        print(f"    After {correction_ranges[-1][1]}: no correction (raw prices)")
+    else:
+        print(f"  No split corrections needed for {symbol_upper}")
     
     # Group data by date
     data_by_date = defaultdict(list)
@@ -88,12 +99,14 @@ def convert_databento_to_lean(input_zst: str, output_dir: str, symbol: str):
     rows = decompress_and_read_zst(input_zst)
     print(f"  Read {len(rows)} rows")
     
+    corrected_count = 0
     skipped_count = 0
     
     for row in rows:
         try:
             # Parse timestamp
             date, ms_since_midnight = parse_databento_timestamp(row['ts_event'])
+            date_str = date.strftime("%Y-%m-%d")
             
             # Get raw prices from Databento
             raw_open = float(row['open'])
@@ -106,6 +119,16 @@ def convert_databento_to_lean(input_zst: str, output_dir: str, symbol: str):
             if raw_open == 0 and raw_close == 0:
                 skipped_count += 1
                 continue
+            
+            # Apply split de-adjustment
+            factor = get_price_correction_factor(symbol_upper, date_str, correction_ranges)
+            
+            if factor != 1.0:
+                raw_open *= factor
+                raw_high *= factor
+                raw_low *= factor
+                raw_close *= factor
+                corrected_count += 1
             
             # Convert prices to scaled integers (multiply by 10000 for LEAN)
             open_price = int(round(raw_open * 10000))
@@ -121,6 +144,8 @@ def convert_databento_to_lean(input_zst: str, output_dir: str, symbol: str):
             print(f"  Skipping row due to error: {e}")
             continue
     
+    if corrected_count > 0:
+        print(f"  Applied split correction to {corrected_count:,} bars")
     if skipped_count > 0:
         print(f"  Skipped {skipped_count:,} bars with zero prices")
     

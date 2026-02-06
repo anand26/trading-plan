@@ -459,22 +459,22 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
     # =========================================================
     
     def UpdateTrendRegime(self) -> None:
-        """Update trend regime from QQQ daily SMAs (computed from minute→daily consolidator).
+        """Update trend regime from QQQ daily SMAs.
         Uptrend: QQQ > SMA50 AND QQQ > SMA200 → only TQQQ entries
         Downtrend: QQQ < SMA50 AND QQQ < SMA200 → only SQQQ entries
         Neutral: between the two → both directions allowed
         """
-        if not self.trend_filter_enabled or self.qqq is None:
+        if not self.trend_filter_enabled or self.qqq_sma_fast is None or self.qqq_sma_slow is None:
             self.current_trend = TrendRegime.NEUTRAL
             return
         
-        if not self.qqq_sma_ready:
+        if not self.qqq_sma_fast.IsReady or not self.qqq_sma_slow.IsReady:
             self.current_trend = TrendRegime.UNKNOWN
             return
         
         qqq_price = self.Securities[self.qqq].Price
-        sma_fast = self.qqq_sma_fast_value
-        sma_slow = self.qqq_sma_slow_value
+        sma_fast = self.qqq_sma_fast.Current.Value
+        sma_slow = self.qqq_sma_slow.Current.Value
         
         if qqq_price > sma_fast and qqq_price > sma_slow:
             self.current_trend = TrendRegime.UPTREND
@@ -493,12 +493,12 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
             self.Log(f"[RISK] Drawdown mode active, position size reduced to {size:.0%}")
         
         # Volatility scaling (optional, configurable)
-        if self.enable_vol_scaling and self.qqq_atr_ready and self.qqq is not None:
+        if self.enable_vol_scaling and self.qqq_atr is not None and self.qqq_atr.IsReady:
             qqq_price = self.Securities[self.qqq].Price
             if qqq_price > 0:
                 # ATR as % of price = realized volatility proxy
-                atr_pct = (self.qqq_atr_value / qqq_price) * 100
-                # Scale: >high thresh → high factor, >med thresh → med factor, else full
+                atr_pct = (self.qqq_atr.Current.Value / qqq_price) * 100
+                # Scale: >30% vol → high factor, >20% → med factor, else full
                 if atr_pct > self.vol_scale_high_thresh:
                     size *= self.vol_scale_high_factor
                     self.Log(f"[VOL] High vol ({atr_pct:.1f}%), position scaled to {size:.0%}")
