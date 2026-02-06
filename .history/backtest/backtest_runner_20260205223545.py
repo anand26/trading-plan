@@ -564,34 +564,12 @@ class BacktestRunner:
         print(f"[STATS] orders entries: {len(orders)}")
         print(f"[STATS] Calculated from profitLoss: wins={winning_trades}, losses={losing_trades}")
         
-        # ============================================================
-        # Calculate performance metrics from equity curve
-        # ============================================================
-        # ALWAYS calculate from equity curve - LEAN's built-in stats are often wrong
-        # (e.g., 1.75% volatility for TQQQ is impossible, Sharpe doesn't match returns)
-        cagr = 0
-        sharpe_ratio = 0
-        sortino_ratio = 0
-        volatility = 0
-        calmar_ratio = 0
-        
-        if charts:
-            equity_metrics = self._calculate_metrics_from_equity_curve(charts)
-            if equity_metrics:
-                cagr = equity_metrics.get("cagr", 0)
-                sharpe_ratio = equity_metrics.get("sharpe_ratio", 0)
-                sortino_ratio = equity_metrics.get("sortino_ratio", 0)
-                volatility = equity_metrics.get("volatility", 0)
-                if max_drawdown > 0:
-                    calmar_ratio = cagr / max_drawdown
-                print(f"[STATS] Calculated from equity curve: CAGR={cagr:.4f}, Sharpe={sharpe_ratio:.4f}, Volatility={volatility:.4f}")
-        
         # Extract with fallback chain: tradeStatistics > statistics > runtimeStatistics > calculated
         extracted = {
             # Core metrics - prefer tradeStatistics, fall back to runtime
             "total_return": self._parse_pct(runtime.get("Return", stats.get("Net Profit", "0%"))),
-            "sharpe_ratio": sharpe_ratio,
-            "sortino_ratio": sortino_ratio,
+            "sharpe_ratio": self._parse_number(trade_stats.get("sharpeRatio", stats.get("Sharpe Ratio", 0))),
+            "sortino_ratio": self._parse_number(trade_stats.get("sortinoRatio", stats.get("Sortino Ratio", 0))),
             "max_drawdown": max_drawdown,
             
             # Trade counts - use calculated trade_count
@@ -617,10 +595,10 @@ class BacktestRunner:
             "net_profit": self._parse_currency(runtime.get("Net Profit", "0")),
             
             # Additional metrics
-            "cagr": cagr,
-            "volatility": volatility,
+            "cagr": self._parse_pct(stats.get("Compounding Annual Return", "0%")),
+            "volatility": self._parse_pct(stats.get("Annual Standard Deviation", "0%")),
             "max_drawdown_duration": trade_stats.get("maximumDrawdownDuration", "00:00:00") if trade_stats else "00:00:00",
-            "calmar_ratio": calmar_ratio,
+            "calmar_ratio": self._parse_number(trade_stats.get("profitToMaxDrawdownRatio", 0)),
         }
         
         # Debug output
@@ -695,103 +673,6 @@ class BacktestRunner:
             })
         
         return orders_list
-    
-    def _calculate_metrics_from_equity_curve(self, charts: Dict) -> Dict[str, float]:
-        """
-        Calculate performance metrics from the equity curve when LEAN doesn't provide them.
-        
-        For long backtests, LEAN may not populate statistics/totalPerformance, so we need
-        to calculate CAGR, Sharpe, Sortino, and Volatility from the Strategy Equity chart.
-        """
-        import math
-        
-        # Get Strategy Equity chart
-        strategy_chart = charts.get("Strategy Equity", charts.get("strategy equity", {}))
-        if not strategy_chart:
-            return {}
-        
-        series = strategy_chart.get("series", strategy_chart.get("Series", {}))
-        equity_series = series.get("Equity", series.get("equity", {}))
-        if not equity_series:
-            return {}
-        
-        values = equity_series.get("values", equity_series.get("Values", []))
-        if not values or len(values) < 2:
-            return {}
-        
-        # Extract equity values (format: [timestamp, open, high, low, close] or [timestamp, value])
-        equity_values = []
-        timestamps = []
-        for v in values:
-            if isinstance(v, list) and len(v) >= 2:
-                timestamps.append(v[0])
-                # Use close price if OHLC, otherwise use the single value
-                equity_values.append(v[-1] if len(v) >= 5 else v[1])
-        
-        if len(equity_values) < 2:
-            return {}
-        
-        # Calculate daily returns
-        daily_returns = []
-        for i in range(1, len(equity_values)):
-            if equity_values[i-1] > 0:
-                daily_return = (equity_values[i] - equity_values[i-1]) / equity_values[i-1]
-                daily_returns.append(daily_return)
-        
-        if not daily_returns:
-            return {}
-        
-        # Calculate metrics
-        initial_equity = equity_values[0]
-        final_equity = equity_values[-1]
-        
-        # Calculate number of years from timestamps
-        start_ts = timestamps[0]
-        end_ts = timestamps[-1]
-        years = (end_ts - start_ts) / (365.25 * 24 * 3600)  # Convert seconds to years
-        
-        if years <= 0:
-            years = len(equity_values) / 252  # Assume ~252 trading days per year
-        
-        # CAGR (Compound Annual Growth Rate)
-        if initial_equity > 0 and years > 0:
-            cagr = (final_equity / initial_equity) ** (1 / years) - 1
-        else:
-            cagr = 0
-        
-        # Annualized Volatility (standard deviation of daily returns * sqrt(252))
-        if len(daily_returns) > 1:
-            mean_return = sum(daily_returns) / len(daily_returns)
-            variance = sum((r - mean_return) ** 2 for r in daily_returns) / (len(daily_returns) - 1)
-            daily_volatility = math.sqrt(variance)
-            annual_volatility = daily_volatility * math.sqrt(252)
-        else:
-            annual_volatility = 0
-        
-        # Sharpe Ratio (assuming risk-free rate of 0 for simplicity)
-        if annual_volatility > 0:
-            sharpe_ratio = cagr / annual_volatility
-        else:
-            sharpe_ratio = 0
-        
-        # Sortino Ratio (using downside deviation)
-        downside_returns = [r for r in daily_returns if r < 0]
-        if len(downside_returns) > 1:
-            downside_variance = sum(r ** 2 for r in downside_returns) / len(downside_returns)
-            downside_deviation = math.sqrt(downside_variance) * math.sqrt(252)
-            sortino_ratio = cagr / downside_deviation if downside_deviation > 0 else 0
-        else:
-            sortino_ratio = sharpe_ratio  # Fall back to Sharpe if no downside returns
-        
-        print(f"[EQUITY CALC] Years: {years:.2f}, Initial: ${initial_equity:,.2f}, Final: ${final_equity:,.2f}")
-        print(f"[EQUITY CALC] Daily returns count: {len(daily_returns)}, Downside returns count: {len(downside_returns)}")
-        
-        return {
-            "cagr": cagr,
-            "sharpe_ratio": sharpe_ratio,
-            "sortino_ratio": sortino_ratio,
-            "volatility": annual_volatility,
-        }
     
     def _parse_pct(self, value: str) -> float:
         """Parse percentage string to float."""

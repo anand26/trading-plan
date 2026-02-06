@@ -565,25 +565,28 @@ class BacktestRunner:
         print(f"[STATS] Calculated from profitLoss: wins={winning_trades}, losses={losing_trades}")
         
         # ============================================================
-        # Calculate performance metrics from equity curve
+        # Calculate performance metrics from equity curve if not available
         # ============================================================
-        # ALWAYS calculate from equity curve - LEAN's built-in stats are often wrong
-        # (e.g., 1.75% volatility for TQQQ is impossible, Sharpe doesn't match returns)
-        cagr = 0
-        sharpe_ratio = 0
-        sortino_ratio = 0
-        volatility = 0
-        calmar_ratio = 0
+        cagr = self._parse_pct(stats.get("Compounding Annual Return", "0%"))
+        sharpe_ratio = self._parse_number(trade_stats.get("sharpeRatio", stats.get("Sharpe Ratio", 0)))
+        sortino_ratio = self._parse_number(trade_stats.get("sortinoRatio", stats.get("Sortino Ratio", 0)))
+        volatility = self._parse_pct(stats.get("Annual Standard Deviation", "0%"))
+        calmar_ratio = self._parse_number(trade_stats.get("profitToMaxDrawdownRatio", 0))
         
-        if charts:
+        # If metrics are missing, calculate from equity curve
+        if (cagr == 0 or sharpe_ratio == 0 or volatility == 0) and charts:
             equity_metrics = self._calculate_metrics_from_equity_curve(charts)
             if equity_metrics:
-                cagr = equity_metrics.get("cagr", 0)
-                sharpe_ratio = equity_metrics.get("sharpe_ratio", 0)
-                sortino_ratio = equity_metrics.get("sortino_ratio", 0)
-                volatility = equity_metrics.get("volatility", 0)
-                if max_drawdown > 0:
-                    calmar_ratio = cagr / max_drawdown
+                if cagr == 0:
+                    cagr = equity_metrics.get("cagr", 0)
+                if sharpe_ratio == 0:
+                    sharpe_ratio = equity_metrics.get("sharpe_ratio", 0)
+                if sortino_ratio == 0:
+                    sortino_ratio = equity_metrics.get("sortino_ratio", 0)
+                if volatility == 0:
+                    volatility = equity_metrics.get("volatility", 0)
+                if calmar_ratio == 0 and max_drawdown > 0:
+                    calmar_ratio = cagr / max_drawdown if max_drawdown > 0 else 0
                 print(f"[STATS] Calculated from equity curve: CAGR={cagr:.4f}, Sharpe={sharpe_ratio:.4f}, Volatility={volatility:.4f}")
         
         # Extract with fallback chain: tradeStatistics > statistics > runtimeStatistics > calculated

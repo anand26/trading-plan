@@ -451,7 +451,7 @@ class BacktestRunner:
         
         Handles both short and long backtests:
         - Short backtests: LEAN populates statistics and totalPerformance
-        - Long backtests: LEAN may only populate runtimeStatistics, profitLoss, and charts
+        - Long backtests: LEAN may only populate runtimeStatistics and profitLoss
         """
         # LEAN uses lowercase keys in newer versions
         stats = results.get("statistics", results.get("Statistics", {}))
@@ -465,30 +465,6 @@ class BacktestRunner:
         # For long backtests, count trades from profitLoss or orders
         profit_loss = results.get("profitLoss", results.get("ProfitLoss", {}))
         orders = results.get("orders", results.get("Orders", {}))
-        charts = results.get("charts", results.get("Charts", {}))
-        
-        # ============================================================
-        # Calculate trade statistics from profitLoss when tradeStatistics is empty
-        # ============================================================
-        winning_trades = 0
-        losing_trades = 0
-        total_profit = 0.0
-        total_loss = 0.0
-        largest_win = 0.0
-        largest_loss = 0.0
-        
-        if profit_loss and not trade_stats:
-            for timestamp, pnl in profit_loss.items():
-                if isinstance(pnl, (int, float)):
-                    pnl_val = float(pnl)
-                    if pnl_val > 0:
-                        winning_trades += 1
-                        total_profit += pnl_val
-                        largest_win = max(largest_win, pnl_val)
-                    elif pnl_val < 0:
-                        losing_trades += 1
-                        total_loss += abs(pnl_val)
-                        largest_loss = max(largest_loss, abs(pnl_val))
         
         # Calculate trade count from available sources
         trade_count = 0
@@ -501,60 +477,6 @@ class BacktestRunner:
         elif orders:
             trade_count = len(orders)
         
-        # If we calculated win/loss from profitLoss, use those values
-        if profit_loss and not trade_stats:
-            winning_trades_final = winning_trades
-            losing_trades_final = losing_trades
-        else:
-            winning_trades_final = self._parse_int(trade_stats.get("numberOfWinningTrades", 0))
-            losing_trades_final = self._parse_int(trade_stats.get("numberOfLosingTrades", 0))
-        
-        # Calculate win rate
-        total_closed = winning_trades_final + losing_trades_final
-        if trade_stats.get("winRate"):
-            win_rate = self._parse_number(trade_stats.get("winRate", 0))
-        elif stats.get("Win Rate"):
-            win_rate = self._parse_pct(stats.get("Win Rate", "0%"))
-        elif total_closed > 0:
-            win_rate = winning_trades_final / total_closed
-        else:
-            win_rate = 0.0
-        
-        # ============================================================
-        # Extract max drawdown from charts if stats is empty
-        # ============================================================
-        max_drawdown = 0.0
-        if stats.get("Drawdown"):
-            max_drawdown = self._parse_pct(stats.get("Drawdown", "0%"))
-        elif charts:
-            # Extract from Drawdown chart
-            drawdown_chart = charts.get("Drawdown", charts.get("drawdown", {}))
-            if drawdown_chart:
-                series = drawdown_chart.get("series", drawdown_chart.get("Series", {}))
-                equity_dd = series.get("Equity Drawdown", series.get("equity drawdown", {}))
-                if equity_dd:
-                    values = equity_dd.get("values", equity_dd.get("Values", []))
-                    if values:
-                        # Values are [timestamp, drawdown_pct] pairs
-                        # Chart values are already percentages (like -32.85 for 32.85% drawdown)
-                        # Convert to decimal (0.3285) to match _parse_pct format
-                        dd_values = [v[1] for v in values if isinstance(v, list) and len(v) > 1]
-                        if dd_values:
-                            max_drawdown = abs(min(dd_values)) / 100.0  # Convert to decimal
-                            print(f"[STATS] Max drawdown from chart: {max_drawdown * 100:.2f}%")
-        
-        # ============================================================
-        # Calculate profit factor
-        # ============================================================
-        if trade_stats.get("profitFactor"):
-            profit_factor = self._parse_number(trade_stats.get("profitFactor", 0))
-        elif stats.get("Profit-Loss Ratio"):
-            profit_factor = self._parse_number(stats.get("Profit-Loss Ratio", 0))
-        elif total_loss > 0:
-            profit_factor = total_profit / total_loss
-        else:
-            profit_factor = 0.0
-        
         # Debug output
         print(f"[STATS] Extracting from LEAN results...")
         print(f"[STATS] statistics available: {bool(stats)}")
@@ -562,54 +484,31 @@ class BacktestRunner:
         print(f"[STATS] totalPerformance available: {bool(total_perf)}")
         print(f"[STATS] profitLoss entries: {len(profit_loss)}")
         print(f"[STATS] orders entries: {len(orders)}")
-        print(f"[STATS] Calculated from profitLoss: wins={winning_trades}, losses={losing_trades}")
         
-        # ============================================================
-        # Calculate performance metrics from equity curve
-        # ============================================================
-        # ALWAYS calculate from equity curve - LEAN's built-in stats are often wrong
-        # (e.g., 1.75% volatility for TQQQ is impossible, Sharpe doesn't match returns)
-        cagr = 0
-        sharpe_ratio = 0
-        sortino_ratio = 0
-        volatility = 0
-        calmar_ratio = 0
-        
-        if charts:
-            equity_metrics = self._calculate_metrics_from_equity_curve(charts)
-            if equity_metrics:
-                cagr = equity_metrics.get("cagr", 0)
-                sharpe_ratio = equity_metrics.get("sharpe_ratio", 0)
-                sortino_ratio = equity_metrics.get("sortino_ratio", 0)
-                volatility = equity_metrics.get("volatility", 0)
-                if max_drawdown > 0:
-                    calmar_ratio = cagr / max_drawdown
-                print(f"[STATS] Calculated from equity curve: CAGR={cagr:.4f}, Sharpe={sharpe_ratio:.4f}, Volatility={volatility:.4f}")
-        
-        # Extract with fallback chain: tradeStatistics > statistics > runtimeStatistics > calculated
+        # Extract with fallback chain: tradeStatistics > statistics > runtimeStatistics
         extracted = {
             # Core metrics - prefer tradeStatistics, fall back to runtime
             "total_return": self._parse_pct(runtime.get("Return", stats.get("Net Profit", "0%"))),
-            "sharpe_ratio": sharpe_ratio,
-            "sortino_ratio": sortino_ratio,
-            "max_drawdown": max_drawdown,
+            "sharpe_ratio": self._parse_number(trade_stats.get("sharpeRatio", stats.get("Sharpe Ratio", 0))),
+            "sortino_ratio": self._parse_number(trade_stats.get("sortinoRatio", stats.get("Sortino Ratio", 0))),
+            "max_drawdown": self._parse_pct(stats.get("Drawdown", "0%")),
             
             # Trade counts - use calculated trade_count
             "total_trades": trade_count,
-            "winning_trades": winning_trades_final,
-            "losing_trades": losing_trades_final,
+            "winning_trades": self._parse_int(trade_stats.get("numberOfWinningTrades", 0)),
+            "losing_trades": self._parse_int(trade_stats.get("numberOfLosingTrades", 0)),
             
-            # Win rate
-            "win_rate": win_rate,
+            # Win rate - tradeStatistics has decimal (0.75), statistics has percent string
+            "win_rate": self._parse_number(trade_stats.get("winRate", 0)) if trade_stats.get("winRate") else self._parse_pct(stats.get("Win Rate", "0%")),
             
-            # Profit metrics - use calculated if tradeStatistics is empty
-            "profit_factor": profit_factor,
-            "avg_win": self._parse_currency(trade_stats.get("averageProfit", stats.get("Average Win", "0"))) if trade_stats else (total_profit / winning_trades if winning_trades > 0 else 0),
-            "avg_loss": self._parse_currency(trade_stats.get("averageLoss", stats.get("Average Loss", "0"))) if trade_stats else (total_loss / losing_trades if losing_trades > 0 else 0),
-            "largest_win": self._parse_currency(trade_stats.get("largestProfit", "0")) if trade_stats else largest_win,
-            "largest_loss": self._parse_currency(trade_stats.get("largestLoss", "0")) if trade_stats else largest_loss,
-            "total_profit": self._parse_currency(trade_stats.get("totalProfit", "0")) if trade_stats else total_profit,
-            "total_loss": self._parse_currency(trade_stats.get("totalLoss", "0")) if trade_stats else total_loss,
+            # Profit metrics from tradeStatistics
+            "profit_factor": self._parse_number(trade_stats.get("profitFactor", stats.get("Profit-Loss Ratio", 0))),
+            "avg_win": self._parse_currency(trade_stats.get("averageProfit", stats.get("Average Win", "0"))),
+            "avg_loss": self._parse_currency(trade_stats.get("averageLoss", stats.get("Average Loss", "0"))),
+            "largest_win": self._parse_currency(trade_stats.get("largestProfit", "0")),
+            "largest_loss": self._parse_currency(trade_stats.get("largestLoss", "0")),
+            "total_profit": self._parse_currency(trade_stats.get("totalProfit", "0")),
+            "total_loss": self._parse_currency(trade_stats.get("totalLoss", "0")),
             
             # Equity from runtimeStatistics
             "equity_final": self._parse_currency(runtime.get("Equity", stats.get("End Equity", "0"))),
@@ -617,10 +516,10 @@ class BacktestRunner:
             "net_profit": self._parse_currency(runtime.get("Net Profit", "0")),
             
             # Additional metrics
-            "cagr": cagr,
-            "volatility": volatility,
+            "cagr": self._parse_pct(stats.get("Compounding Annual Return", "0%")),
+            "volatility": self._parse_pct(stats.get("Annual Standard Deviation", "0%")),
             "max_drawdown_duration": trade_stats.get("maximumDrawdownDuration", "00:00:00") if trade_stats else "00:00:00",
-            "calmar_ratio": calmar_ratio,
+            "calmar_ratio": self._parse_number(trade_stats.get("profitToMaxDrawdownRatio", 0)),
         }
         
         # Debug output
@@ -695,103 +594,6 @@ class BacktestRunner:
             })
         
         return orders_list
-    
-    def _calculate_metrics_from_equity_curve(self, charts: Dict) -> Dict[str, float]:
-        """
-        Calculate performance metrics from the equity curve when LEAN doesn't provide them.
-        
-        For long backtests, LEAN may not populate statistics/totalPerformance, so we need
-        to calculate CAGR, Sharpe, Sortino, and Volatility from the Strategy Equity chart.
-        """
-        import math
-        
-        # Get Strategy Equity chart
-        strategy_chart = charts.get("Strategy Equity", charts.get("strategy equity", {}))
-        if not strategy_chart:
-            return {}
-        
-        series = strategy_chart.get("series", strategy_chart.get("Series", {}))
-        equity_series = series.get("Equity", series.get("equity", {}))
-        if not equity_series:
-            return {}
-        
-        values = equity_series.get("values", equity_series.get("Values", []))
-        if not values or len(values) < 2:
-            return {}
-        
-        # Extract equity values (format: [timestamp, open, high, low, close] or [timestamp, value])
-        equity_values = []
-        timestamps = []
-        for v in values:
-            if isinstance(v, list) and len(v) >= 2:
-                timestamps.append(v[0])
-                # Use close price if OHLC, otherwise use the single value
-                equity_values.append(v[-1] if len(v) >= 5 else v[1])
-        
-        if len(equity_values) < 2:
-            return {}
-        
-        # Calculate daily returns
-        daily_returns = []
-        for i in range(1, len(equity_values)):
-            if equity_values[i-1] > 0:
-                daily_return = (equity_values[i] - equity_values[i-1]) / equity_values[i-1]
-                daily_returns.append(daily_return)
-        
-        if not daily_returns:
-            return {}
-        
-        # Calculate metrics
-        initial_equity = equity_values[0]
-        final_equity = equity_values[-1]
-        
-        # Calculate number of years from timestamps
-        start_ts = timestamps[0]
-        end_ts = timestamps[-1]
-        years = (end_ts - start_ts) / (365.25 * 24 * 3600)  # Convert seconds to years
-        
-        if years <= 0:
-            years = len(equity_values) / 252  # Assume ~252 trading days per year
-        
-        # CAGR (Compound Annual Growth Rate)
-        if initial_equity > 0 and years > 0:
-            cagr = (final_equity / initial_equity) ** (1 / years) - 1
-        else:
-            cagr = 0
-        
-        # Annualized Volatility (standard deviation of daily returns * sqrt(252))
-        if len(daily_returns) > 1:
-            mean_return = sum(daily_returns) / len(daily_returns)
-            variance = sum((r - mean_return) ** 2 for r in daily_returns) / (len(daily_returns) - 1)
-            daily_volatility = math.sqrt(variance)
-            annual_volatility = daily_volatility * math.sqrt(252)
-        else:
-            annual_volatility = 0
-        
-        # Sharpe Ratio (assuming risk-free rate of 0 for simplicity)
-        if annual_volatility > 0:
-            sharpe_ratio = cagr / annual_volatility
-        else:
-            sharpe_ratio = 0
-        
-        # Sortino Ratio (using downside deviation)
-        downside_returns = [r for r in daily_returns if r < 0]
-        if len(downside_returns) > 1:
-            downside_variance = sum(r ** 2 for r in downside_returns) / len(downside_returns)
-            downside_deviation = math.sqrt(downside_variance) * math.sqrt(252)
-            sortino_ratio = cagr / downside_deviation if downside_deviation > 0 else 0
-        else:
-            sortino_ratio = sharpe_ratio  # Fall back to Sharpe if no downside returns
-        
-        print(f"[EQUITY CALC] Years: {years:.2f}, Initial: ${initial_equity:,.2f}, Final: ${final_equity:,.2f}")
-        print(f"[EQUITY CALC] Daily returns count: {len(daily_returns)}, Downside returns count: {len(downside_returns)}")
-        
-        return {
-            "cagr": cagr,
-            "sharpe_ratio": sharpe_ratio,
-            "sortino_ratio": sortino_ratio,
-            "volatility": annual_volatility,
-        }
     
     def _parse_pct(self, value: str) -> float:
         """Parse percentage string to float."""
@@ -989,39 +791,27 @@ class BacktestRunner:
             
             # 5. Store individual trades using BULK INSERT pattern (for Trade-Mind queries)
             # Use batch inserts instead of one-by-one to dramatically speed up large datasets
-            # Trades table schema requires: Symbol, Direction, EntryTime, EntryPrice, EntryQuantity (NOT NULL)
-            # SQL Server limit: 2100 parameters per query. With 8 params/trade, max batch = 250
             if trades:
                 print(f"[SQL] Bulk inserting {len(trades)} trades...")
-                batch_size = 250  # 250 * 8 = 2000 params (under SQL Server's 2100 limit)
-                
-                # Use current time as default for backtest trades (LEAN doesn't provide entry/exit times in profitLoss)
-                default_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                
+                batch_size = 1000
                 for i in range(0, len(trades), batch_size):
                     batch = trades[i:i+batch_size]
                     
-                    # Build multi-row insert matching actual Trades table schema
+                    # Build multi-row insert
                     values_list = []
                     params_list = []
                     for j, trade in enumerate(batch):
-                        # 8 parameters per trade
-                        values_list.append("(?, ?, ?, ?, ?, ?, ?, ?)")
-                        pnl = trade.get("realized_pnl", 0)
+                        values_list.append(f"(?, ?, 'BUY', ?, ?)")
                         params_list.extend([
-                            session_id,                           # SessionId
-                            trade.get("symbol", "TQQQ"),          # Symbol
-                            "LONG" if pnl >= 0 else "SHORT",      # Direction (infer from P&L)
-                            trade.get("time", default_time),      # EntryTime
-                            0.0,                                  # EntryPrice (not available from LEAN profitLoss)
-                            abs(trade.get("quantity", 1)),        # EntryQuantity
-                            pnl,                                  # NetPnL
-                            "BACKTEST"                            # ExitReason
+                            session_id,
+                            trade.get("symbol", "TQQQ"),
+                            trade.get("quantity", 0),
+                            trade.get("realized_pnl", 0)
                         ])
                     
                     values_sql = ", ".join(values_list)
                     sql = f"""
-                        INSERT INTO Trades (SessionId, Symbol, Direction, EntryTime, EntryPrice, EntryQuantity, NetPnL, ExitReason)
+                        INSERT INTO Trades (SessionId, Symbol, Side, Quantity, RealizedPnL)
                         VALUES {values_sql}
                     """
                     
