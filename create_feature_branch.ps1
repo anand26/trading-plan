@@ -114,26 +114,9 @@ if ($CheckinOnly) {
 Write-Info "Feature Branch Creator"
 Write-Info "============================================"
 
-# Verify we're on main branch
+# Branch from current working copy (not main)
 $currentBranch = git rev-parse --abbrev-ref HEAD
-if ($currentBranch -ne "main") {
-    Write-Warning-Custom "Currently on branch: $currentBranch"
-    Write-Info "Switching to main branch..."
-    git checkout main
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error-Custom "Failed to switch to main branch"
-        exit 1
-    }
-}
-
-Write-Info "On main branch"
-
-# Pull latest changes
-Write-Info "Pulling latest changes from main..."
-git pull origin main
-if ($LASTEXITCODE -ne 0) {
-    Write-Error-Custom "Warning: Could not pull latest changes"
-}
+Write-Info "Creating feature branch from: $currentBranch"
 
 # Check for uncommitted changes
 $status = git status --porcelain
@@ -210,9 +193,9 @@ Write-Info "3. Commit changes:       git commit -m 'Your message'"
 Write-Info "4. Push commits:         git push origin $FeatureName"
 Write-Info "5. Create Pull Request on GitHub"
 Write-Info "`nFor quick code check-in (no feature branch):"
-Write-Info "   .\create_feature_branch.ps1 -CheckinOnly"
-Write-Info "`nTo undo and go back to main:"
-Write-Info "   git checkout main"
+Write-Info "   .\create_feature_branch.ps1"
+Write-Info "`nTo undo and go back to previous branch:"
+Write-Info "   git checkout $currentBranch"
 Write-Info "   git branch -d $FeatureName"
 Write-Info "   git push origin --delete $FeatureName"
 Write-Info "============================================"
