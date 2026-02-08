@@ -166,6 +166,10 @@ class ParameterOptimizer:
                 # Timing
                 'max_hold_minutes', 'min_bars_between',
                 
+                # Phase 2B: Exit mechanics
+                'exit_confirmation_bars',
+                'exit_target_zscore',
+                
                 # Legacy parameters (for TQQQScalpingAlgorithm)
                 'rsi_period', 'rsi_oversold', 'rsi_overbought',
                 'bb_period', 'bb_std_dev',
@@ -224,11 +228,17 @@ class ParameterOptimizer:
             'position_size': 0.50,      # 50% of portfolio
             
             # Risk management
-            'stop_loss_pct': 0.03,      # 3% stop loss
+            'stop_loss_pct': 0.02,      # 2% stop loss (tightened from 3%)
             
             # Timing
             'max_hold_minutes': 0,      # 0 = no limit (intraday close)
             'min_bars_between': 3,      # Min 3 bars between trades
+            
+            # ==========================================
+            # PHASE 2B: EXIT MECHANICS
+            # ==========================================
+            'exit_confirmation_bars': 5,        # Wait 5 bars before z-score exit (Phase 1 winner)
+            'exit_target_zscore': 0.0,           # Exit when z crosses zero (full mean reversion)
             
             # ==========================================
             # LEGACY PARAMETERS (for TQQQScalpingAlgorithm)

@@ -60,7 +60,13 @@ class BacktestConfig:
     position_size: float = 0.50  # 50% of portfolio
     
     # Risk management
-    stop_loss_pct: float = 0.03  # 3% stop loss
+    stop_loss_pct: float = 0.02  # 2% stop loss (tightened from 3%)
+    
+    # Phase 2B: Exit confirmation (winner from Phase 1)
+    exit_confirmation_bars: int = 5         # Wait N bars before z-score exit (default raised to 5)
+    
+    # Phase 2B: Z-score zero-crossing exit target
+    exit_target_zscore: float = 0.0         # Exit when z crosses this (0.0 = full mean reversion)
     
     # Timing
     max_hold_minutes: int = 0    # 0 = no limit (intraday close)
@@ -192,6 +198,12 @@ class BacktestRunner:
                 
                 # Risk management
                 "stop-loss-pct": str(config.stop_loss_pct),
+                
+                # Phase 2B: Exit confirmation
+                "exit-confirmation-bars": str(config.exit_confirmation_bars),
+                
+                # Phase 2B: Z-score zero-crossing exit target
+                "exit-target-zscore": str(config.exit_target_zscore),
                 
                 # Timing
                 "max-hold-minutes": str(config.max_hold_minutes),

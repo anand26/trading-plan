@@ -459,12 +459,32 @@ class LeanResultsProcessor:
             
             print(f"[SQL] Stored {len(self.daily_stats)} daily records")
             
-            # 4. Store backtest outcome summary
+            # 4. Store backtest outcome summary with derived metrics
+            win_rate = self.statistics.get("win_rate", 0)
+            avg_win = self.statistics.get("avg_win", 0)
+            avg_loss = abs(self.statistics.get("avg_loss", 0))
+            sharpe = self.statistics.get("sharpe_ratio", 0)
+            max_dd = self.statistics.get("max_drawdown", 0)
+            total_trades = self.statistics.get("total_trades", 0)
+            
+            expectancy = (win_rate * avg_win) - ((1 - win_rate) * avg_loss) if total_trades > 0 else 0
+            expectancy_ratio = expectancy / avg_loss if avg_loss > 0 else 0
+            
+            if sharpe >= 2.0: grade = 'A'
+            elif sharpe >= 1.5: grade = 'B+'
+            elif sharpe >= 1.0: grade = 'B'
+            elif sharpe >= 0.5: grade = 'C+'
+            elif sharpe >= 0: grade = 'C'
+            else: grade = 'D'
+            
+            is_successful = 1 if (sharpe >= 1.0 and win_rate >= 0.4 and abs(max_dd) <= 0.20) else 0
+            
             cursor.execute("""
                 INSERT INTO BacktestOutcomes (
                     SessionId, TotalReturn, SharpeRatio, MaxDrawdown,
-                    TotalTrades, WinRate, ProfitFactor
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    TotalTrades, WinRate, ProfitFactor,
+                    Expectancy, ExpectancyRatio, PerformanceGrade, IsSuccessful
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 self.session_id,
                 self.statistics.get("total_return", 0),
@@ -472,7 +492,8 @@ class LeanResultsProcessor:
                 self.statistics.get("max_drawdown", 0),
                 self.statistics.get("total_trades", 0),
                 self.statistics.get("win_rate", 0),
-                self.statistics.get("profit_factor", 0)
+                self.statistics.get("profit_factor", 0),
+                expectancy, expectancy_ratio, grade, is_successful
             ))
             
             conn.commit()

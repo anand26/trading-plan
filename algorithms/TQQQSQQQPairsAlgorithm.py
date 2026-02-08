@@ -29,8 +29,17 @@ Key Insight:
 - When ratio is high → SQQQ is cheap → Buy SQQQ
 - Exit when ratio normalizes (Z-score → 0)
 
+Phase 2B Enhancements (v7.0):
+- REMOVED trailing stop (fights mean-reversion oscillation)
+- REMOVED partial exit (shrinks winners without reducing losers)
+- Z-score exit confirmation: require N consecutive bars before exiting winners (Phase 1 winner)
+- Tighter stop loss (default 2%): cut losers faster to improve R ratio
+- Z-score zero-crossing exit: exit when z-score crosses zero (full mean reversion)
+- BUG FIX: entry_zscore state variable renamed to trade_entry_zscore to avoid
+  overwriting the config threshold parameter
+
 Author: Trading Plan Implementation
-Version: 3.0.0 (Pairs Strategy)
+Version: 7.0.0 (Phase 2B - Architectural Pivot)
 """
 
 
@@ -69,6 +78,8 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
     - |Z-score| < exit_threshold → Close position (ratio normalized)
     
     Risk Management:
+    - Z-score exit confirmation (N bars) to avoid premature exits
+    - Z-score zero-crossing exit: full mean reversion completion
     - Stop loss based on Z-score extremes OR percentage loss
     - Maximum hold time (avoid being stuck in diverging spread)
     - Intraday only (close all at 3:50 PM)
@@ -116,8 +127,8 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         # Stop loss Z-score (exit if spread diverges further)
         self.stop_zscore = float(self.GetParameter("stop-zscore") or self.GetParameter("stop_zscore") or 3.0)  # type: ignore
         
-        # Percentage stop loss (backup safety)
-        self.stop_loss_pct = float(self.GetParameter("stop-loss-pct") or self.GetParameter("stop_loss_pct") or 0.03)  # type: ignore
+        # Percentage stop loss (backup safety) - tightened from 3% to 2%
+        self.stop_loss_pct = float(self.GetParameter("stop-loss-pct") or self.GetParameter("stop_loss_pct") or 0.02)  # type: ignore
         
         # Position size (percentage of portfolio)
         self.position_size = float(self.GetParameter("position-size") or self.GetParameter("position_size") or 0.50)  # type: ignore
@@ -128,11 +139,27 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         # Minimum bars between trades (avoid overtrading)
         self.min_bars_between_trades = int(float(self.GetParameter("min-bars-between") or self.GetParameter("min_bars_between") or 3))  # type: ignore
         
+        # =====================================================
+        # PHASE 2B: Z-SCORE EXIT CONFIRMATION
+        # =====================================================
+        # Number of consecutive bars z-score must stay normalized before exit
+        # Phase 1 testing showed confirm=5 was the runaway winner (+8.43% return)
+        self.exit_confirmation_bars = int(float(self.GetParameter("exit-confirmation-bars") or self.GetParameter("exit_confirmation_bars") or 5))  # type: ignore
+        
+        # =====================================================
+        # PHASE 2B: Z-SCORE ZERO-CROSSING EXIT TARGET
+        # =====================================================
+        # Exit target z-score: 0.0 = exit when z crosses zero (full mean reversion)
+        # Positive values = exit earlier (before full reversion)
+        self.exit_target_zscore = float(self.GetParameter("exit-target-zscore") or self.GetParameter("exit_target_zscore") or 0.0)  # type: ignore
+        
         # Log parameters
         self.Log(f"[PARAMS] Z-score Lookback: {self.zscore_lookback} bars")  # type: ignore
         self.Log(f"[PARAMS] Entry Z-score: ±{self.entry_zscore}, Exit Z-score: ±{self.exit_zscore}")  # type: ignore
         self.Log(f"[PARAMS] Stop Z-score: ±{self.stop_zscore}, Stop Loss: {self.stop_loss_pct:.1%}")  # type: ignore
         self.Log(f"[PARAMS] Position Size: {self.position_size:.0%}")  # type: ignore
+        self.Log(f"[PARAMS] Exit Confirmation: {self.exit_confirmation_bars} bars")  # type: ignore
+        self.Log(f"[PARAMS] Exit Target Z-score: {self.exit_target_zscore}")  # type: ignore
         
         # =====================================================
         # ADD SECURITIES
@@ -168,8 +195,11 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         self.position_state = PositionState.FLAT
         self.entry_price: float = 0.0
         self.entry_time: Optional[datetime] = None
-        self.entry_zscore: float = 0.0
+        self.trade_entry_zscore: float = 0.0  # BUG FIX: renamed from entry_zscore to avoid overwriting config param
         self.bars_since_trade: int = 0
+        
+        # Z-score exit confirmation tracking
+        self.exit_signal_bars: int = 0
         
         # Trade history
         self.trade_history: List[TradeRecord] = []
@@ -222,6 +252,8 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
                     "stop_zscore": self.stop_zscore,
                     "stop_loss_pct": self.stop_loss_pct,
                     "position_size": self.position_size,
+                    "exit_confirmation_bars": self.exit_confirmation_bars,
+                    "exit_target_zscore": self.exit_target_zscore,
                 }
                 
                 session_id = str(self.GetParameter("session-id") or "")  # type: ignore
@@ -235,7 +267,7 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
                 self.Debug(f"[SQL] Failed to initialize: {e}")
                 self.db = None
         
-        self.Debug("TQQQSQQQPairsAlgorithm Initialized")
+        self.Debug("TQQQSQQQPairsAlgorithm v7.0 Initialized (Phase 2B - Architectural Pivot)")
     
     # =========================================================
     # CONSOLIDATED BAR HANDLERS
@@ -354,9 +386,12 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         current_price = self.Securities[symbol].Price
         self.entry_price = current_price
         self.entry_time = self.Time
-        self.entry_zscore = zscore
+        self.trade_entry_zscore = zscore  # BUG FIX: was self.entry_zscore, which overwrote the config threshold
         self.bars_since_trade = 0
         self.daily_trades_count += 1
+        
+        # Reset exit confirmation tracking
+        self.exit_signal_bars = 0
         
         if symbol_name == "TQQQ":
             self.position_state = PositionState.LONG_TQQQ
@@ -370,7 +405,7 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
     # =========================================================
     
     def ProcessExitSignals(self, zscore: float) -> None:
-        """Check for exit signals"""
+        """Check for exit signals with z-score zero-crossing and confirmation"""
         
         symbol = self.tqqq if self.position_state == PositionState.LONG_TQQQ else self.sqqq
         symbol_name = "TQQQ" if self.position_state == PositionState.LONG_TQQQ else "SQQQ"
@@ -380,24 +415,44 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         
         exit_reason = None
         
-        # Exit 1: Z-score normalized (mean reversion complete)
-        if self.position_state == PositionState.LONG_TQQQ and zscore > -self.exit_zscore:
-            exit_reason = f"Z-score normalized: {zscore:.2f}"
-        elif self.position_state == PositionState.LONG_SQQQ and zscore < self.exit_zscore:
-            exit_reason = f"Z-score normalized: {zscore:.2f}"
+        # =====================================================
+        # EXIT 1: Hard stop loss (cut losers FAST - highest priority)
+        # =====================================================
+        if pnl_pct < -self.stop_loss_pct:
+            exit_reason = f"Stop loss: {pnl_pct:.2%}"
         
-        # Exit 2: Z-score diverged too far (stop loss on spread)
+        # =====================================================
+        # EXIT 2: Z-score diverged too far (spread blew out)
+        # =====================================================
         elif self.position_state == PositionState.LONG_TQQQ and zscore < -self.stop_zscore:
             exit_reason = f"Z-score stop: {zscore:.2f}"
         elif self.position_state == PositionState.LONG_SQQQ and zscore > self.stop_zscore:
             exit_reason = f"Z-score stop: {zscore:.2f}"
         
-        # Exit 3: Percentage stop loss
-        elif pnl_pct < -self.stop_loss_pct:
-            exit_reason = f"Stop loss: {pnl_pct:.2%}"
+        # =====================================================
+        # EXIT 3: Z-score zero-crossing exit WITH confirmation
+        #         Mean reversion complete when z-score crosses
+        #         past exit_target_zscore (default 0.0 = zero)
+        #         Require N consecutive bars in exit zone
+        # =====================================================
+        elif self.position_state == PositionState.LONG_TQQQ and zscore > -self.exit_target_zscore:
+            # TQQQ entered on negative z-score, exit when z crosses above target (toward/past zero)
+            self.exit_signal_bars += 1
+            if self.exit_signal_bars >= self.exit_confirmation_bars:
+                exit_reason = f"Z-score zero-cross (confirmed {self.exit_signal_bars} bars): {zscore:.2f}"
+        elif self.position_state == PositionState.LONG_SQQQ and zscore < self.exit_target_zscore:
+            # SQQQ entered on positive z-score, exit when z crosses below target (toward/past zero)
+            self.exit_signal_bars += 1
+            if self.exit_signal_bars >= self.exit_confirmation_bars:
+                exit_reason = f"Z-score zero-cross (confirmed {self.exit_signal_bars} bars): {zscore:.2f}"
+        else:
+            # Z-score moved back away from exit zone - reset confirmation counter
+            self.exit_signal_bars = 0
         
-        # Exit 4: Maximum hold time
-        elif self.max_hold_minutes > 0 and self.entry_time:
+        # =====================================================
+        # EXIT 4: Maximum hold time
+        # =====================================================
+        if exit_reason is None and self.max_hold_minutes > 0 and self.entry_time:
             hold_minutes = (self.Time - self.entry_time).total_seconds() / 60
             if hold_minutes > self.max_hold_minutes:
                 exit_reason = f"Max hold time: {hold_minutes:.0f} min"
@@ -426,7 +481,7 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
                 quantity=quantity,
                 pnl=pnl,
                 pnl_pct=pnl_pct,
-                entry_zscore=self.entry_zscore,
+                entry_zscore=self.trade_entry_zscore,  # BUG FIX: use renamed state var
                 exit_zscore=zscore,
                 hold_duration_minutes=hold_minutes
             )
@@ -444,7 +499,7 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
                 exit_price=current_price,
                 entry_time=self.entry_time,
                 exit_time=self.Time,
-                entry_reason=f"Z-score entry: {self.entry_zscore:.2f}",
+                entry_reason=f"Z-score entry: {self.trade_entry_zscore:.2f}",  # BUG FIX: use renamed state var
                 exit_reason=reason
             )
         
@@ -452,8 +507,9 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         self.position_state = PositionState.FLAT
         self.entry_price = 0.0
         self.entry_time = None
-        self.entry_zscore = 0.0
+        self.trade_entry_zscore = 0.0  # BUG FIX: use renamed state var
         self.bars_since_trade = 0
+        self.exit_signal_bars = 0
     
     # =========================================================
     # HELPER METHODS
@@ -496,10 +552,18 @@ class TQQQSQQQPairsAlgorithm(QCAlgorithm):
         win_rate = winning_trades / total_trades if total_trades > 0 else 0
         total_return = (self.Portfolio.TotalPortfolioValue - 100000) / 100000
         
+        # R ratio calculation
+        wins = [t.pnl for t in self.trade_history if t.pnl > 0]
+        losses = [t.pnl for t in self.trade_history if t.pnl < 0]
+        avg_win = sum(wins) / len(wins) if wins else 0
+        avg_loss = abs(sum(losses) / len(losses)) if losses else 1
+        r_ratio = avg_win / avg_loss if avg_loss > 0 else 0
+        
         self.Log(f"[SUMMARY] Total Trades: {total_trades}")
         self.Log(f"[SUMMARY] Winning: {winning_trades}, Losing: {total_trades - winning_trades}")
         self.Log(f"[SUMMARY] Win Rate: {win_rate:.1%}")
         self.Log(f"[SUMMARY] Total P&L: ${total_pnl:.2f}")
+        self.Log(f"[SUMMARY] Avg Win: ${avg_win:.2f}, Avg Loss: ${avg_loss:.2f}, R Ratio: {r_ratio:.2f}")
         
         # SQL session end
         if self.db:
