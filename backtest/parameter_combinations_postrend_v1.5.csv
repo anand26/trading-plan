@@ -1,0 +1,105 @@
+# Position Trend v1.5: Composite Sub-Strategy Voting
+# Backtest period: 2018-06-01 to 2026-01-14, $100K initial
+#
+# 7 sub-strategies vote +1 (BULL), 0 (NEUTRAL), or -1 (BEAR):
+#   1. SMA Cross (always on) — QQQ vs SMA 50/200
+#   2. EMA 21 — fast momentum direction
+#   3. MACD (12/26/9) — trend momentum
+#   4. RSI — momentum level (bull/bear thresholds)
+#   5. ROC — N-day rate of change sign
+#   6. Bollinger Band — price vs middle band
+#   7. ADX — trend strength + direction
+#
+# Consensus maps to allocation via vote_threshold_full/half
+# Binary mode: >= threshold = full alloc, else 0%
+# Graduated mode: full/half/zero tiers
+#
+# Row 1: CONTROL (voting OFF — pure v1.0 baseline)
+# Rows 2-30: Voting system sweeps
+#
+sma_fast,sma_slow,bull_allocation,bear_allocation,use_cash_zone,mixed_allocation,rebalance_threshold,confirmation_days,bear_confirmation_days,bear_sma_margin,bear_momentum_lookback,voting_enabled,vote_threshold_full,vote_threshold_half,vote_mode,sub_ema_enabled,sub_macd_enabled,sub_rsi_enabled,sub_roc_enabled,sub_bbands_enabled,sub_adx_enabled,rsi_period,rsi_bull_threshold,rsi_bear_threshold,roc_vote_lookback,adx_threshold,bb_period
+# Row 1: CONTROL — v1.0 baseline (voting OFF)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,false,5,3,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# ============================================================
+# SECTION A: BINARY MODE — All 7 subs ON, sweep threshold
+# ============================================================
+# Row 2: Binary, threshold=3 (majority of 7 = bullish)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,3,2,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 3: Binary, threshold=4
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 4: Binary, threshold=5 (strong consensus)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,5,3,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 5: Binary, threshold=6 (very strong consensus)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,6,4,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 6: Binary, threshold=7 (unanimous)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,7,5,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# ============================================================
+# SECTION B: GRADUATED MODE — All 7 subs ON, sweep thresholds
+# ============================================================
+# Row 7: Graduated, full=5, half=3
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,5,3,graduated,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 8: Graduated, full=4, half=2
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,2,graduated,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 9: Graduated, full=6, half=4
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,6,4,graduated,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 10: Graduated, full=3, half=1
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,3,1,graduated,true,true,true,true,true,true,14,50,40,20,25,20
+# ============================================================
+# SECTION C: BINARY MODE — Sub-strategy subsets (threshold=4)
+# Which combinations of indicators matter?
+# ============================================================
+# Row 11: Only trend subs (SMA + EMA + MACD), 3 subs voting
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,2,1,binary,true,true,false,false,false,false,14,50,40,20,25,20
+# Row 12: Only momentum subs (SMA + RSI + ROC), 3 subs voting
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,2,1,binary,false,false,true,true,false,false,14,50,40,20,25,20
+# Row 13: Trend + momentum (SMA + EMA + MACD + RSI + ROC), 5 subs
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,3,2,binary,true,true,true,true,false,false,14,50,40,20,25,20
+# Row 14: All except ADX (6 subs), threshold=4
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,false,14,50,40,20,25,20
+# Row 15: All except RSI (6 subs), threshold=4
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,false,true,true,true,14,50,40,20,25,20
+# Row 16: All except BB (6 subs), threshold=4
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,false,true,14,50,40,20,25,20
+# Row 17: SMA + EMA + ROC + ADX (4 subs), threshold=3
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,3,2,binary,true,false,false,true,false,true,14,50,40,20,25,20
+# Row 18: SMA + MACD + BB + ADX (4 subs), threshold=3
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,3,2,binary,false,true,false,false,true,true,14,50,40,20,25,20
+# ============================================================
+# SECTION D: PARAMETER SENSITIVITY — RSI thresholds
+# ============================================================
+# Row 19: RSI thresholds: bull=55, bear=35 (wider neutral zone)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,55,35,20,25,20
+# Row 20: RSI thresholds: bull=45, bear=45 (no neutral — always votes)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,45,45,20,25,20
+# Row 21: RSI thresholds: bull=60, bear=30 (very wide neutral zone)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,60,30,20,25,20
+# ============================================================
+# SECTION E: PARAMETER SENSITIVITY — ADX threshold
+# ============================================================
+# Row 22: ADX threshold=20 (more sensitive trend detection)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,50,40,20,20,20
+# Row 23: ADX threshold=30 (requires stronger trend)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,50,40,20,30,20
+# ============================================================
+# SECTION F: PARAMETER SENSITIVITY — ROC lookback
+# ============================================================
+# Row 24: ROC lookback=10 (faster momentum)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,50,40,10,25,20
+# Row 25: ROC lookback=40 (slower momentum)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,50,40,40,25,20
+# ============================================================
+# SECTION G: ALLOCATION LEVELS with voting
+# ============================================================
+# Row 26: Higher bull allocation (100%) with binary threshold=4
+50,200,1.00,0.00,true,0.00,0.05,1,5,0.02,10,true,4,3,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# Row 27: Lower bull allocation (70%) with binary threshold=3
+50,200,0.70,0.00,true,0.00,0.05,1,5,0.02,10,true,3,2,binary,true,true,true,true,true,true,14,50,40,20,25,20
+# ============================================================
+# SECTION H: GRADUATED with sub-strategy subsets
+# ============================================================
+# Row 28: Graduated, trend only (SMA+EMA+MACD), full=2, half=1
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,2,1,graduated,true,true,false,false,false,false,14,50,40,20,25,20
+# Row 29: Graduated, 5 subs (no BB/ADX), full=3, half=2
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,3,2,graduated,true,true,true,true,false,false,14,50,40,20,25,20
+# Row 30: Graduated, all 7, full=5, half=2 (wide spread)
+50,200,0.90,0.00,true,0.00,0.05,1,5,0.02,10,true,5,2,graduated,true,true,true,true,true,true,14,50,40,20,25,20

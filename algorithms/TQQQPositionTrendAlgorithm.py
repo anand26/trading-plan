@@ -62,9 +62,25 @@ Parameters:
   - roc_decel_threshold: ROC drop from peak that triggers position reduction (default 0.03 = 3%)
   - roc_exit_threshold: Absolute ROC level that triggers full exit (default -0.01)
   - roc_reduce_alloc: Allocation to reduce to when deceleration detected (default 0.50 = 50%)
+  - voting_enabled: Enable composite voting system (default false)
+  - vote_threshold_full: Minimum net votes for full allocation (default 5)
+  - vote_threshold_half: Minimum net votes for half allocation (default 3)
+  - vote_mode: 'binary' (full or zero) or 'graduated' (tiered allocation) (default binary)
+  - sub_ema_enabled: Enable EMA21 trend sub-strategy (default true)
+  - sub_macd_enabled: Enable MACD sub-strategy (default true)
+  - sub_rsi_enabled: Enable RSI sub-strategy (default true)
+  - sub_roc_enabled: Enable ROC momentum sub-strategy (default true)
+  - sub_bbands_enabled: Enable Bollinger Band sub-strategy (default true)
+  - sub_adx_enabled: Enable ADX trend strength sub-strategy (default true)
+  - rsi_period: RSI calculation period (default 14)
+  - rsi_bull_threshold: RSI above this = BULL vote (default 50)
+  - rsi_bear_threshold: RSI below this = BEAR vote (default 40)
+  - roc_vote_lookback: ROC lookback for voting sub-strategy (default 20)
+  - adx_threshold: ADX above this = trending (default 25)
+  - bb_period: Bollinger Band period (default 20)
 
 Author: Trading Plan Implementation
-Version: 1.4.0 (ROC Deceleration Exit)
+Version: 1.5.0 (Composite Sub-Strategy Voting)
 """
 
 
@@ -197,6 +213,33 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.roc_exit_threshold = float(self.GetParameter("roc-exit-threshold") or -0.01)     # Absolute ROC to trigger full exit
         self.roc_reduce_alloc = float(self.GetParameter("roc-reduce-alloc") or 0.50)          # Reduced allocation on deceleration
         
+        # =====================================================
+        # v1.5: COMPOSITE VOTING PARAMETERS
+        # =====================================================
+        # Master switch — when off, algorithm behaves as v1.0-v1.4
+        self.voting_enabled = str(self.GetParameter("voting-enabled") or "false").lower() == "true"
+        
+        # Voting thresholds
+        self.vote_threshold_full = int(float(self.GetParameter("vote-threshold-full") or 5))   # Net votes for full alloc
+        self.vote_threshold_half = int(float(self.GetParameter("vote-threshold-half") or 3))   # Net votes for half alloc
+        self.vote_mode = str(self.GetParameter("vote-mode") or "binary").lower()               # binary or graduated
+        
+        # Sub-strategy enable switches (SMA cross is always #1 — it IS the baseline)
+        self.sub_ema_enabled = str(self.GetParameter("sub-ema-enabled") or "true").lower() == "true"
+        self.sub_macd_enabled = str(self.GetParameter("sub-macd-enabled") or "true").lower() == "true"
+        self.sub_rsi_enabled = str(self.GetParameter("sub-rsi-enabled") or "true").lower() == "true"
+        self.sub_roc_enabled = str(self.GetParameter("sub-roc-enabled") or "true").lower() == "true"
+        self.sub_bbands_enabled = str(self.GetParameter("sub-bbands-enabled") or "true").lower() == "true"
+        self.sub_adx_enabled = str(self.GetParameter("sub-adx-enabled") or "true").lower() == "true"
+        
+        # Sub-strategy indicator parameters
+        self.rsi_period = int(float(self.GetParameter("rsi-period") or 14))
+        self.rsi_bull_threshold = float(self.GetParameter("rsi-bull-threshold") or 50)
+        self.rsi_bear_threshold = float(self.GetParameter("rsi-bear-threshold") or 40)
+        self.roc_vote_lookback = int(float(self.GetParameter("roc-vote-lookback") or 20))
+        self.adx_threshold = float(self.GetParameter("adx-threshold") or 25)
+        self.bb_period = int(float(self.GetParameter("bb-period") or 20))
+        
         # End-of-day execution window
         self.eod_hour = 15
         self.eod_minute = 50  # Execute trades at 3:50 PM ET (10 min before close)
@@ -210,6 +253,14 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.Log(f"[PARAMS] Bear Confirm: {self.bear_confirmation_days}d, Bear Margin: {self.bear_sma_margin:.1%}, Bear ROC Lookback: {self.bear_momentum_lookback}d")
         self.Log(f"[PARAMS] Dynamic Alloc: {self.dynamic_allocation}, Min: {self.bull_alloc_min:.0%}, Max: {self.bull_alloc_max:.0%}, Scale Max: {self.alloc_scale_max_pct:.0%}")
         self.Log(f"[PARAMS] ROC Exit: {self.roc_exit_enabled}, Lookback: {self.roc_exit_lookback}d, Decel: {self.roc_decel_threshold:.1%}, Exit: {self.roc_exit_threshold:.1%}, Reduce: {self.roc_reduce_alloc:.0%}")
+        if self.voting_enabled:
+            subs = [s for s, e in [('EMA', self.sub_ema_enabled), ('MACD', self.sub_macd_enabled),
+                    ('RSI', self.sub_rsi_enabled), ('ROC', self.sub_roc_enabled),
+                    ('BB', self.sub_bbands_enabled), ('ADX', self.sub_adx_enabled)] if e]
+            self.Log(f"[PARAMS] VOTING: mode={self.vote_mode}, full>={self.vote_threshold_full}, half>={self.vote_threshold_half}")
+            self.Log(f"[PARAMS] VOTING subs: SMA_CROSS + {subs} ({1+len(subs)} total)")
+            self.Log(f"[PARAMS] RSI: period={self.rsi_period}, bull>{self.rsi_bull_threshold}, bear<{self.rsi_bear_threshold}")
+            self.Log(f"[PARAMS] ROC vote LB={self.roc_vote_lookback}, ADX threshold={self.adx_threshold}, BB period={self.bb_period}")
         
         # =====================================================
         # ADD SECURITIES
@@ -228,8 +279,12 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         # =====================================================
         # QQQ DAILY CLOSE HISTORY FOR SMAs (manual calculation)
         # =====================================================
-        max_lookback = self.sma_slow_period + 10  # Slow SMA needs the most history
+        max_lookback = max(self.sma_slow_period + 10, 300)  # Enough for all indicators
         self.qqq_closes: deque = deque(maxlen=max_lookback)
+        
+        # v1.5: Also store high/low for ATR/ADX
+        self.qqq_highs: deque = deque(maxlen=max_lookback)
+        self.qqq_lows: deque = deque(maxlen=max_lookback)
         
         # Current SMA values
         self.sma_fast_value: float = 0.0
@@ -259,6 +314,13 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.current_roc: float = 0.0              # Current QQQ Rate of Change
         self.roc_peak_in_regime: float = 0.0        # Peak ROC since entering current regime
         self.roc_state: str = "FULL"                # FULL, REDUCED, or EXITED
+        
+        # =====================================================
+        # v1.5: VOTING STATE
+        # =====================================================
+        self.last_votes: Dict[str, int] = {}        # Last vote from each sub-strategy
+        self.last_consensus: int = 0                 # Net consensus score
+        self.vote_allocation: float = 0.0            # Allocation from voting system
         
         # =====================================================
         # TRADE EXECUTION FLAGS
@@ -328,7 +390,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                 self.Debug(f"[SQL] Failed to initialize: {e}")
                 self.db = None
         
-        self.Debug("TQQQPositionTrendAlgorithm v1.4 Initialized")
+        self.Debug("TQQQPositionTrendAlgorithm v1.5 Initialized")
     
     # =========================================================
     # DAILY BAR HANDLER — QQQ REGIME DETECTION
@@ -340,6 +402,8 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         Calculate SMAs, detect regime, set pending action.
         """
         self.qqq_closes.append(float(bar.Close))
+        self.qqq_highs.append(float(bar.High))
+        self.qqq_lows.append(float(bar.Low))
         self.last_qqq_close = float(bar.Close)
         
         # Need enough history for slow SMA
@@ -573,12 +637,244 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                      f"(drop={roc_drop:.2%} < threshold={self.roc_decel_threshold:.2%}) → FULL")
             self.roc_state = "FULL"
     
+    # =========================================================
+    # v1.5: COMPOSITE VOTING SYSTEM
+    # =========================================================
+    
+    def _compute_votes(self) -> Dict[str, int]:
+        """
+        v1.5: Each sub-strategy votes +1 (BULL), 0 (NEUTRAL), or -1 (BEAR).
+        
+        Sub-strategies:
+        1. SMA Cross    — QQQ vs SMA fast/slow (always on — it IS the baseline signal)
+        2. EMA 21       — QQQ vs EMA 21 (fast momentum direction)
+        3. MACD         — MACD line vs signal line
+        4. RSI          — RSI level: >bull_thresh=BULL, <bear_thresh=BEAR, else NEUTRAL
+        5. ROC Momentum — N-day rate of change sign
+        6. Bollinger    — Price vs middle band
+        7. ADX          — Trend strength + direction
+        """
+        closes = list(self.qqq_closes)
+        highs = list(self.qqq_highs)
+        lows = list(self.qqq_lows)
+        n = len(closes)
+        votes: Dict[str, int] = {}
+        
+        # ------- 1. SMA CROSS (always on) -------
+        if self.sma_fast_value > 0 and self.sma_slow_value > 0:
+            price = closes[-1]
+            if price > self.sma_fast_value and price > self.sma_slow_value:
+                votes["SMA_CROSS"] = 1
+            elif price < self.sma_fast_value and price < self.sma_slow_value:
+                votes["SMA_CROSS"] = -1
+            else:
+                votes["SMA_CROSS"] = 0
+        
+        # ------- 2. EMA 21 -------
+        if self.sub_ema_enabled and n >= 21:
+            ema = self._calc_ema(closes, 21)
+            votes["EMA21"] = 1 if closes[-1] > ema else -1
+        
+        # ------- 3. MACD (12/26/9) -------
+        if self.sub_macd_enabled and n >= 35:
+            ema12 = self._calc_ema(closes, 12)
+            ema26 = self._calc_ema(closes, 26)
+            macd_line = ema12 - ema26
+            # Signal line = EMA 9 of MACD line (approximate using recent MACD values)
+            macd_series = []
+            for i in range(n - 35, n):
+                e12 = sum(closes[max(0, i-11):i+1]) / min(12, i+1)
+                e26 = sum(closes[max(0, i-25):i+1]) / min(26, i+1)
+                macd_series.append(e12 - e26)
+            signal_line = self._calc_ema(macd_series, 9)
+            votes["MACD"] = 1 if macd_line > signal_line else -1
+        
+        # ------- 4. RSI -------
+        if self.sub_rsi_enabled and n >= self.rsi_period + 1:
+            rsi = self._calc_rsi(closes, self.rsi_period)
+            if rsi >= self.rsi_bull_threshold:
+                votes["RSI"] = 1
+            elif rsi <= self.rsi_bear_threshold:
+                votes["RSI"] = -1
+            else:
+                votes["RSI"] = 0
+        
+        # ------- 5. ROC MOMENTUM -------
+        if self.sub_roc_enabled and n >= self.roc_vote_lookback:
+            price_n_ago = closes[-self.roc_vote_lookback]
+            roc = (closes[-1] - price_n_ago) / price_n_ago if price_n_ago > 0 else 0
+            if roc > 0.01:    # >1% = BULL
+                votes["ROC"] = 1
+            elif roc < -0.01:  # <-1% = BEAR
+                votes["ROC"] = -1
+            else:
+                votes["ROC"] = 0
+        
+        # ------- 6. BOLLINGER BAND -------
+        if self.sub_bbands_enabled and n >= self.bb_period:
+            bb_closes = closes[-self.bb_period:]
+            bb_mean = sum(bb_closes) / self.bb_period
+            bb_var = sum((c - bb_mean) ** 2 for c in bb_closes) / self.bb_period
+            bb_std = bb_var ** 0.5
+            upper = bb_mean + 2 * bb_std
+            lower = bb_mean - 2 * bb_std
+            price = closes[-1]
+            if price > bb_mean:
+                votes["BBANDS"] = 1
+            elif price < bb_mean:
+                votes["BBANDS"] = -1
+            else:
+                votes["BBANDS"] = 0
+        
+        # ------- 7. ADX (trend strength + direction) -------
+        if self.sub_adx_enabled and n >= 15 and len(highs) >= 15 and len(lows) >= 15:
+            adx, plus_di, minus_di = self._calc_adx(highs, lows, closes, 14)
+            if adx > self.adx_threshold:
+                votes["ADX"] = 1 if plus_di > minus_di else -1
+            else:
+                votes["ADX"] = 0  # No trend = NEUTRAL
+        
+        return votes
+    
+    def _calc_ema(self, data: list, period: int) -> float:
+        """Calculate Exponential Moving Average of the last value."""
+        if len(data) < period:
+            return sum(data) / len(data)
+        multiplier = 2.0 / (period + 1)
+        ema = sum(data[:period]) / period
+        for val in data[period:]:
+            ema = (val - ema) * multiplier + ema
+        return ema
+    
+    def _calc_rsi(self, closes: list, period: int) -> float:
+        """Calculate RSI from close prices."""
+        gains = []
+        losses = []
+        for i in range(1, len(closes)):
+            change = closes[i] - closes[i-1]
+            gains.append(max(change, 0))
+            losses.append(max(-change, 0))
+        
+        if len(gains) < period:
+            return 50.0  # neutral
+        
+        # Use Wilder's smoothing
+        avg_gain = sum(gains[-period:]) / period
+        avg_loss = sum(losses[-period:]) / period
+        
+        if avg_loss == 0:
+            return 100.0
+        rs = avg_gain / avg_loss
+        return 100.0 - (100.0 / (1.0 + rs))
+    
+    def _calc_adx(self, highs: list, lows: list, closes: list, period: int = 14):
+        """Calculate ADX, +DI, -DI from HLC data."""
+        n = len(closes)
+        if n < period + 1:
+            return 0.0, 0.0, 0.0
+        
+        tr_list = []
+        plus_dm_list = []
+        minus_dm_list = []
+        
+        for i in range(1, n):
+            high_diff = highs[i] - highs[i-1]
+            low_diff = lows[i-1] - lows[i]
+            
+            plus_dm = max(high_diff, 0) if high_diff > low_diff else 0
+            minus_dm = max(low_diff, 0) if low_diff > high_diff else 0
+            
+            tr = max(
+                highs[i] - lows[i],
+                abs(highs[i] - closes[i-1]),
+                abs(lows[i] - closes[i-1])
+            )
+            tr_list.append(tr)
+            plus_dm_list.append(plus_dm)
+            minus_dm_list.append(minus_dm)
+        
+        if len(tr_list) < period:
+            return 0.0, 0.0, 0.0
+        
+        # Wilder smoothing
+        atr = sum(tr_list[:period]) / period
+        plus_dm_avg = sum(plus_dm_list[:period]) / period
+        minus_dm_avg = sum(minus_dm_list[:period]) / period
+        
+        dx_list = []
+        for i in range(period, len(tr_list)):
+            atr = (atr * (period - 1) + tr_list[i]) / period
+            plus_dm_avg = (plus_dm_avg * (period - 1) + plus_dm_list[i]) / period
+            minus_dm_avg = (minus_dm_avg * (period - 1) + minus_dm_list[i]) / period
+            
+            plus_di = (plus_dm_avg / atr * 100) if atr > 0 else 0
+            minus_di = (minus_dm_avg / atr * 100) if atr > 0 else 0
+            di_sum = plus_di + minus_di
+            dx = abs(plus_di - minus_di) / di_sum * 100 if di_sum > 0 else 0
+            dx_list.append(dx)
+        
+        if len(dx_list) < period:
+            # Not enough DX values for full ADX, use average of what we have
+            adx = sum(dx_list) / len(dx_list) if dx_list else 0
+        else:
+            adx = sum(dx_list[:period]) / period
+            for i in range(period, len(dx_list)):
+                adx = (adx * (period - 1) + dx_list[i]) / period
+        
+        # Return latest +DI and -DI
+        final_plus_di = (plus_dm_avg / atr * 100) if atr > 0 else 0
+        final_minus_di = (minus_dm_avg / atr * 100) if atr > 0 else 0
+        
+        return adx, final_plus_di, final_minus_di
+    
+    def _votes_to_allocation(self, votes: Dict[str, int]) -> Tuple[Optional[str], float]:
+        """
+        v1.5: Convert vote consensus to target direction and allocation.
+        
+        Returns (direction, allocation):
+          - direction: 'BULL', 'BEAR', 'FLAT', or None (let regime decide)
+          - allocation: target allocation percentage
+        
+        Binary mode: consensus >= vote_threshold_full → full alloc, else 0%
+        Graduated mode: tiered allocation based on consensus level
+        """
+        if not votes:
+            return None, 0.0
+        
+        consensus = sum(votes.values())
+        num_voters = len(votes)
+        self.last_votes = votes
+        self.last_consensus = consensus
+        
+        if self.vote_mode == "binary":
+            # Simple: enough bulls = full, else flat
+            if consensus >= self.vote_threshold_full:
+                return "BULL", self.bull_allocation
+            elif consensus <= -self.vote_threshold_full:
+                return "BEAR", self.bear_allocation
+            else:
+                return "FLAT", 0.0
+        
+        else:  # graduated
+            if consensus >= self.vote_threshold_full:
+                return "BULL", self.bull_allocation
+            elif consensus >= self.vote_threshold_half:
+                # Half allocation
+                return "BULL", self.bull_allocation * 0.5
+            elif consensus <= -self.vote_threshold_full:
+                return "BEAR", self.bear_allocation
+            elif consensus <= -self.vote_threshold_half:
+                return "BEAR", self.bear_allocation * 0.5
+            else:
+                return "FLAT", 0.0
+    
     def _generate_signal(self) -> None:
         """
         Generate trading signal based on current regime.
         Sets pending_action for end-of-day execution.
         v1.3: Uses dynamic allocation scaling when enabled.
         v1.4: Applies ROC deceleration exit overlay.
+        v1.5: Composite voting system can override regime-based allocation.
         """
         if self.drawdown_exit_triggered:
             self.pending_action = "GO_FLAT"
@@ -588,41 +884,64 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         target_symbol = None
         target_allocation = 0.0
         
-        if self.current_regime == MarketRegime.BULL:
-            target_symbol = self.tqqq
-            target_allocation = self._calculate_dynamic_allocation(self.bull_allocation, MarketRegime.BULL)
+        # v1.5: VOTING SYSTEM — if enabled, votes determine allocation
+        if self.voting_enabled:
+            votes = self._compute_votes()
+            direction, vote_alloc = self._votes_to_allocation(votes)
+            self.vote_allocation = vote_alloc
             
-            # v1.4: ROC exit overlay — can reduce or override bull allocation
-            if self.roc_exit_enabled:
-                if self.roc_state == "EXITED":
-                    # Momentum collapsed — go to cash even though regime is still BULL
-                    target_symbol = None
-                    target_allocation = 0.0
-                elif self.roc_state == "REDUCED":
-                    # Momentum decelerating — reduce position
-                    target_allocation = min(target_allocation, self.roc_reduce_alloc)
-        
-        elif self.current_regime == MarketRegime.BEAR:
-            target_symbol = self.sqqq
-            target_allocation = self._calculate_dynamic_allocation(self.bear_allocation, MarketRegime.BEAR)
-        
-        elif self.current_regime == MarketRegime.MIXED:
-            if self.use_cash_zone:
-                # Go flat in mixed zone
+            # Log votes periodically (first of month)
+            if self.Time.day <= 1:
+                vote_str = " ".join(f"{k}={v:+d}" for k, v in sorted(votes.items()))
+                self.Log(f"[VOTE] {vote_str} | consensus={self.last_consensus} → {direction} {vote_alloc:.0%}")
+            
+            if direction == "BULL":
+                target_symbol = self.tqqq
+                target_allocation = vote_alloc
+            elif direction == "BEAR":
+                target_symbol = self.sqqq
+                target_allocation = vote_alloc
+            else:  # FLAT
                 target_symbol = None
                 target_allocation = 0.0
-            else:
-                # Reduced position in mixed zone
-                if self.mixed_instrument == "tqqq":
-                    target_symbol = self.tqqq
-                else:
-                    target_symbol = self.sqqq
-                target_allocation = self.mixed_allocation
         
         else:
-            # UNKNOWN — stay flat
-            target_symbol = None
-            target_allocation = 0.0
+            # Original regime-based logic (v1.0-v1.4)
+            if self.current_regime == MarketRegime.BULL:
+                target_symbol = self.tqqq
+                target_allocation = self._calculate_dynamic_allocation(self.bull_allocation, MarketRegime.BULL)
+                
+                # v1.4: ROC exit overlay — can reduce or override bull allocation
+                if self.roc_exit_enabled:
+                    if self.roc_state == "EXITED":
+                        # Momentum collapsed — go to cash even though regime is still BULL
+                        target_symbol = None
+                        target_allocation = 0.0
+                    elif self.roc_state == "REDUCED":
+                        # Momentum decelerating — reduce position
+                        target_allocation = min(target_allocation, self.roc_reduce_alloc)
+            
+            elif self.current_regime == MarketRegime.BEAR:
+                target_symbol = self.sqqq
+                target_allocation = self._calculate_dynamic_allocation(self.bear_allocation, MarketRegime.BEAR)
+            
+            elif self.current_regime == MarketRegime.MIXED:
+                if self.use_cash_zone:
+                    # Go flat in mixed zone
+                    target_symbol = None
+                    target_allocation = 0.0
+                else:
+                    # Reduced position in mixed zone
+                    if self.mixed_instrument == "tqqq":
+                        target_symbol = self.tqqq
+                    else:
+                        target_symbol = self.sqqq
+                    target_allocation = self.mixed_allocation
+            
+            else:
+                # UNKNOWN — stay flat
+                target_symbol = None
+                target_allocation = 0.0
         
         # Determine action needed
         current_holdings_tqqq = self.Portfolio[self.tqqq].Quantity

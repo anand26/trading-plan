@@ -97,6 +97,24 @@ class PositionTrendBacktestConfig:
     roc_decel_threshold: float = 0.03  # ROC drop from peak to trigger reduction
     roc_exit_threshold: float = -0.01  # Absolute ROC level to trigger full exit
     roc_reduce_alloc: float = 0.50     # Allocation when deceleration detected
+    
+    # v1.5: Composite voting parameters
+    voting_enabled: bool = False        # Enable composite voting system
+    vote_threshold_full: int = 5        # Net votes for full allocation
+    vote_threshold_half: int = 3        # Net votes for half allocation
+    vote_mode: str = "binary"           # binary or graduated
+    sub_ema_enabled: bool = True        # EMA 21 sub-strategy
+    sub_macd_enabled: bool = True       # MACD sub-strategy
+    sub_rsi_enabled: bool = True        # RSI sub-strategy
+    sub_roc_enabled: bool = True        # ROC momentum sub-strategy
+    sub_bbands_enabled: bool = True     # Bollinger Bands sub-strategy
+    sub_adx_enabled: bool = True        # ADX trend strength sub-strategy
+    rsi_period: int = 14                # RSI calculation period
+    rsi_bull_threshold: float = 50      # RSI above this = BULL vote
+    rsi_bear_threshold: float = 40      # RSI below this = BEAR vote
+    roc_vote_lookback: int = 20         # ROC lookback for voting
+    adx_threshold: float = 25           # ADX above this = trending
+    bb_period: int = 20                 # Bollinger Band period
 
 
 class PositionTrendBacktestRunner:
@@ -211,6 +229,24 @@ class PositionTrendBacktestRunner:
             "roc-decel-threshold": str(config.roc_decel_threshold),
             "roc-exit-threshold": str(config.roc_exit_threshold),
             "roc-reduce-alloc": str(config.roc_reduce_alloc),
+            
+            # v1.5: Composite voting
+            "voting-enabled": str(config.voting_enabled).lower(),
+            "vote-threshold-full": str(config.vote_threshold_full),
+            "vote-threshold-half": str(config.vote_threshold_half),
+            "vote-mode": config.vote_mode,
+            "sub-ema-enabled": str(config.sub_ema_enabled).lower(),
+            "sub-macd-enabled": str(config.sub_macd_enabled).lower(),
+            "sub-rsi-enabled": str(config.sub_rsi_enabled).lower(),
+            "sub-roc-enabled": str(config.sub_roc_enabled).lower(),
+            "sub-bbands-enabled": str(config.sub_bbands_enabled).lower(),
+            "sub-adx-enabled": str(config.sub_adx_enabled).lower(),
+            "rsi-period": str(config.rsi_period),
+            "rsi-bull-threshold": str(config.rsi_bull_threshold),
+            "rsi-bear-threshold": str(config.rsi_bear_threshold),
+            "roc-vote-lookback": str(config.roc_vote_lookback),
+            "adx-threshold": str(config.adx_threshold),
+            "bb-period": str(config.bb_period),
             
             # Session tracking
             "session-id": config.session_id,
@@ -690,6 +726,11 @@ class PositionTrendParameterOptimizer:
         'bear_confirmation_days', 'bear_sma_margin', 'bear_momentum_lookback',
         'dynamic_allocation', 'bull_alloc_min', 'bull_alloc_max', 'alloc_scale_max_pct',
         'roc_exit_enabled', 'roc_exit_lookback', 'roc_decel_threshold', 'roc_exit_threshold', 'roc_reduce_alloc',
+        'voting_enabled', 'vote_threshold_full', 'vote_threshold_half', 'vote_mode',
+        'sub_ema_enabled', 'sub_macd_enabled', 'sub_rsi_enabled', 'sub_roc_enabled',
+        'sub_bbands_enabled', 'sub_adx_enabled',
+        'rsi_period', 'rsi_bull_threshold', 'rsi_bear_threshold',
+        'roc_vote_lookback', 'adx_threshold', 'bb_period',
     ]
     
     DEFAULTS = {
@@ -716,6 +757,22 @@ class PositionTrendParameterOptimizer:
         'roc_decel_threshold': 0.03,
         'roc_exit_threshold': -0.01,
         'roc_reduce_alloc': 0.50,
+        'voting_enabled': False,
+        'vote_threshold_full': 5,
+        'vote_threshold_half': 3,
+        'vote_mode': 'binary',
+        'sub_ema_enabled': True,
+        'sub_macd_enabled': True,
+        'sub_rsi_enabled': True,
+        'sub_roc_enabled': True,
+        'sub_bbands_enabled': True,
+        'sub_adx_enabled': True,
+        'rsi_period': 14,
+        'rsi_bull_threshold': 50,
+        'rsi_bear_threshold': 40,
+        'roc_vote_lookback': 20,
+        'adx_threshold': 25,
+        'bb_period': 20,
     }
     
     def __init__(self, connection_string: str = None):
@@ -752,6 +809,11 @@ class PositionTrendParameterOptimizer:
                     elif col == 'dynamic_allocation':
                         val = str(val).lower() in ('true', '1', 'yes')
                     elif col == 'roc_exit_enabled':
+                        val = str(val).lower() in ('true', '1', 'yes')
+                    elif col == 'voting_enabled':
+                        val = str(val).lower() in ('true', '1', 'yes')
+                    elif col in ('sub_ema_enabled', 'sub_macd_enabled', 'sub_rsi_enabled',
+                                 'sub_roc_enabled', 'sub_bbands_enabled', 'sub_adx_enabled'):
                         val = str(val).lower() in ('true', '1', 'yes')
                     params[col] = val
                 elif col in self.DEFAULTS:
