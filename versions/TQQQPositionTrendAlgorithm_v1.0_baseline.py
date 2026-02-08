@@ -25,11 +25,6 @@ Concept:  Use slow+fast SMAs on QQQ (proxy for NDX) to determine market
 Regime Detection (using QQQ):
   - BULL:  QQQ > SMA_fast AND QQQ > SMA_slow  → Long TQQQ
   - BEAR:  QQQ < SMA_fast AND QQQ < SMA_slow  → Long SQQQ
-           v1.1: BEAR requires stricter confirmation:
-           - QQQ must be bear_sma_margin% below slow SMA
-           - ROC over bear_momentum_lookback days must be negative
-           - bear_confirmation_days consecutive days in bear zone
-           If not all met → classified as MIXED (cash)
   - MIXED: QQQ between the two SMAs            → Cash (flat) or reduced position
 
 Key Design Principles:
@@ -39,7 +34,6 @@ Key Design Principles:
   - Position sizing: Dynamic % of portfolio per regime
   - Simplicity: The edge comes from riding trends, not over-optimizing
   - No shorting: SQQQ serves as the bear instrument
-  - v1.1: Bear entry is much stricter to avoid whipsaws during corrections
 
 Parameters:
   - sma_fast: Fast SMA period (default 50 days)
@@ -50,12 +44,9 @@ Parameters:
   - mixed_allocation: % allocation during mixed regime if not flat (default 0.30)
   - rebalance_threshold: Min allocation drift to trigger rebalance (default 0.05)
   - max_drawdown_exit: Emergency exit if portfolio drawdown exceeds this (0=disabled)
-  - bear_confirmation_days: Days to confirm bear regime (default 5, stricter than bull)
-  - bear_sma_margin: QQQ must be this % below slow SMA for bear (default 0.02 = 2%)
-  - bear_momentum_lookback: ROC lookback for bear momentum check (default 10 days)
 
 Author: Trading Plan Implementation
-Version: 1.1.0 (Stricter Bear Regime Detection)
+Version: 1.0.0 (Position Trend Following)
 """
 
 
@@ -158,17 +149,6 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         # Confirmation bars — require N consecutive days in new regime before switching
         self.confirmation_days = int(float(self.GetParameter("confirmation-days") or 1))
         
-        # =====================================================
-        # v1.1: STRICTER BEAR REGIME PARAMETERS
-        # =====================================================
-        # Bear needs more confirmation than bull (avoid whipsaws during corrections)
-        self.bear_confirmation_days = int(float(self.GetParameter("bear-confirmation-days") or 5))
-        # QQQ must be this % below slow SMA to qualify as bear (e.g., 0.02 = 2%)
-        self.bear_sma_margin = float(self.GetParameter("bear-sma-margin") or 0.02)
-        # Rate of Change lookback — ROC must be negative over this many days
-        self.bear_momentum_lookback = int(float(self.GetParameter("bear-momentum-lookback") or 10))
-        
-        # =====================================================
         # End-of-day execution window
         self.eod_hour = 15
         self.eod_minute = 50  # Execute trades at 3:50 PM ET (10 min before close)
@@ -179,7 +159,6 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.Log(f"[PARAMS] Cash Zone: {self.use_cash_zone}, Mixed Alloc: {self.mixed_allocation:.0%}")
         self.Log(f"[PARAMS] Rebalance Threshold: {self.rebalance_threshold:.0%}")
         self.Log(f"[PARAMS] Max DD Exit: {self.max_drawdown_exit:.0%}, Confirm Days: {self.confirmation_days}")
-        self.Log(f"[PARAMS] Bear Confirm: {self.bear_confirmation_days}d, Bear Margin: {self.bear_sma_margin:.1%}, Bear ROC Lookback: {self.bear_momentum_lookback}d")
         
         # =====================================================
         # ADD SECURITIES
@@ -211,7 +190,6 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.current_regime = MarketRegime.UNKNOWN
         self.pending_regime = MarketRegime.UNKNOWN  # Regime waiting for confirmation
         self.pending_regime_count: int = 0          # Days in pending regime
-        self.pending_bear_count: int = 0            # v1.1: Separate counter for bear confirmation
         self.regime_start_time: Optional[datetime] = None
         self.regime_history: List[RegimeChange] = []
         
@@ -291,7 +269,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                 self.Debug(f"[SQL] Failed to initialize: {e}")
                 self.db = None
         
-        self.Debug("TQQQPositionTrendAlgorithm v1.1 Initialized")
+        self.Debug("TQQQPositionTrendAlgorithm v1.0 Initialized")
     
     # =========================================================
     # DAILY BAR HANDLER — QQQ REGIME DETECTION
@@ -354,14 +332,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self._generate_signal()
     
     def _classify_regime(self, qqq_price: float) -> MarketRegime:
-        """Classify market regime based on QQQ price vs SMAs.
-        
-        v1.1: Bear regime has stricter requirements:
-        - QQQ must be below BOTH SMAs (same as before)
-        - QQQ must be bear_sma_margin% below the slow SMA
-        - Rate of change over bear_momentum_lookback days must be negative
-        If below both SMAs but criteria not fully met → MIXED (cash)
-        """
+        """Classify market regime based on QQQ price vs SMAs."""
         if self.sma_fast_value <= 0 or self.sma_slow_value <= 0:
             return MarketRegime.UNKNOWN
         
@@ -371,22 +342,6 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         if above_fast and above_slow:
             return MarketRegime.BULL
         elif not above_fast and not above_slow:
-            # v1.1: Stricter bear detection
-            # Check 1: QQQ must be bear_sma_margin% below the slow SMA
-            bear_threshold = self.sma_slow_value * (1.0 - self.bear_sma_margin)
-            if qqq_price > bear_threshold:
-                # Below both SMAs but not far enough below → MIXED (cash)
-                return MarketRegime.MIXED
-            
-            # Check 2: Rate of change must be negative (momentum confirming downtrend)
-            if len(self.qqq_closes) >= self.bear_momentum_lookback:
-                closes_list = list(self.qqq_closes)
-                price_n_days_ago = closes_list[-self.bear_momentum_lookback]
-                roc = (qqq_price - price_n_days_ago) / price_n_days_ago if price_n_days_ago > 0 else 0
-                if roc >= 0:
-                    # Price is not declining → correction might be recovering → MIXED
-                    return MarketRegime.MIXED
-            
             return MarketRegime.BEAR
         else:
             return MarketRegime.MIXED
@@ -394,16 +349,9 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
     def _apply_confirmation(self, raw_regime: MarketRegime) -> MarketRegime:
         """
         Require N consecutive days in a new regime before switching.
-        v1.1: Bear transitions use bear_confirmation_days (stricter).
-        Bull transitions use confirmation_days (responsive).
+        This reduces whipsaws around the SMA crossover points.
         """
-        # Determine how many days are needed for this transition
-        if raw_regime == MarketRegime.BEAR:
-            required_days = self.bear_confirmation_days
-        else:
-            required_days = self.confirmation_days
-        
-        if required_days <= 1 and raw_regime != MarketRegime.BEAR:
+        if self.confirmation_days <= 1:
             return raw_regime
         
         if raw_regime == self.current_regime:
@@ -414,7 +362,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         
         if raw_regime == self.pending_regime:
             self.pending_regime_count += 1
-            if self.pending_regime_count >= required_days:
+            if self.pending_regime_count >= self.confirmation_days:
                 # Confirmed — switch
                 self.pending_regime_count = 0
                 return raw_regime
@@ -424,7 +372,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
             # New pending regime
             self.pending_regime = raw_regime
             self.pending_regime_count = 1
-            if required_days <= 1:
+            if self.confirmation_days <= 1:
                 return raw_regime
             return self.current_regime
     

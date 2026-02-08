@@ -79,12 +79,6 @@ class PositionTrendBacktestConfig:
     
     # Confirmation
     confirmation_days: int = 1        # Days to confirm regime change
-    
-    # v1.1: Stricter bear regime parameters
-    bear_confirmation_days: int = 5   # Days to confirm bear (stricter than bull)
-    bear_sma_margin: float = 0.02     # QQQ must be this % below slow SMA for bear
-    bear_momentum_lookback: int = 10  # ROC lookback days for bear momentum check
-    
 
 
 class PositionTrendBacktestRunner:
@@ -181,13 +175,6 @@ class PositionTrendBacktestRunner:
             
             # Confirmation
             "confirmation-days": str(config.confirmation_days),
-            
-            # v1.1: Stricter bear regime
-            "bear-confirmation-days": str(config.bear_confirmation_days),
-            "bear-sma-margin": str(config.bear_sma_margin),
-            "bear-momentum-lookback": str(config.bear_momentum_lookback),
-            
-            # v1.3: Dynamic allocation
             
             # Session tracking
             "session-id": config.session_id,
@@ -664,7 +651,6 @@ class PositionTrendParameterOptimizer:
         'rebalance_threshold',
         'max_drawdown_exit',
         'confirmation_days',
-        'bear_confirmation_days', 'bear_sma_margin', 'bear_momentum_lookback',
     ]
     
     DEFAULTS = {
@@ -679,9 +665,6 @@ class PositionTrendParameterOptimizer:
         'rebalance_threshold': 0.05,
         'max_drawdown_exit': 0.0,
         'confirmation_days': 1,
-        'bear_confirmation_days': 5,
-        'bear_sma_margin': 0.02,
-        'bear_momentum_lookback': 10,
     }
     
     def __init__(self, connection_string: str = None):
@@ -704,7 +687,7 @@ class PositionTrendParameterOptimizer:
         if not HAS_PANDAS:
             raise ImportError("pandas required: pip install pandas")
         
-        df = pd.read_csv(file_path, comment='#')
+        df = pd.read_csv(file_path)
         print(f"[CSV] Loaded {len(df)} combinations from {Path(file_path).name}")
         
         combinations = []
@@ -714,7 +697,6 @@ class PositionTrendParameterOptimizer:
                 if col in row and pd.notna(row[col]):
                     val = row[col]
                     if col == 'use_cash_zone':
-                        val = str(val).lower() in ('true', '1', 'yes')
                         val = str(val).lower() in ('true', '1', 'yes')
                     params[col] = val
                 elif col in self.DEFAULTS:
@@ -924,11 +906,6 @@ def main():
     parser.add_argument("--max-drawdown-exit", type=float, default=0.0)
     parser.add_argument("--confirmation-days", type=int, default=1)
     
-    # v1.1: Stricter bear regime
-    parser.add_argument("--bear-confirmation-days", type=int, default=5)
-    parser.add_argument("--bear-sma-margin", type=float, default=0.02)
-    parser.add_argument("--bear-momentum-lookback", type=int, default=10)
-    
     # Batch mode
     parser.add_argument("--csv", default=None, help="CSV file for batch optimization")
     parser.add_argument("--results-csv", default="postrend_optimization_results.csv", help="Output results CSV")
@@ -960,9 +937,6 @@ def main():
             rebalance_threshold=args.rebalance_threshold,
             max_drawdown_exit=args.max_drawdown_exit,
             confirmation_days=args.confirmation_days,
-            bear_confirmation_days=args.bear_confirmation_days,
-            bear_sma_margin=args.bear_sma_margin,
-            bear_momentum_lookback=args.bear_momentum_lookback,
         )
         
         if result.get("success"):

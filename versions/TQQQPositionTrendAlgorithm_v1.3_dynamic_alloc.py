@@ -44,7 +44,7 @@ Key Design Principles:
 Parameters:
   - sma_fast: Fast SMA period (default 50 days)
   - sma_slow: Slow SMA period (default 200 days)
-  - bull_allocation: % of portfolio in TQQQ during bull (default 0.90)
+  - bull_allocation: % of portfolio in TQQQ during bull (default 0.90, used as fixed when dynamic=off)
   - bear_allocation: % of portfolio in SQQQ during bear (default 0.50)
   - use_cash_zone: Whether to go flat when regime is mixed (default true)
   - mixed_allocation: % allocation during mixed regime if not flat (default 0.30)
@@ -53,9 +53,13 @@ Parameters:
   - bear_confirmation_days: Days to confirm bear regime (default 5, stricter than bull)
   - bear_sma_margin: QQQ must be this % below slow SMA for bear (default 0.02 = 2%)
   - bear_momentum_lookback: ROC lookback for bear momentum check (default 10 days)
+  - dynamic_allocation: Enable distance-based position scaling (default false)
+  - bull_alloc_min: Min allocation when barely in bull zone (default 0.30)
+  - bull_alloc_max: Max allocation when strong bull trend (default 1.00)
+  - alloc_scale_max_pct: QQQ distance % from slow SMA that maps to max allocation (default 0.10 = 10%)
 
 Author: Trading Plan Implementation
-Version: 1.1.0 (Stricter Bear Regime Detection)
+Version: 1.3.0 (Dynamic Allocation Based on Trend Strength)
 """
 
 
@@ -169,6 +173,15 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.bear_momentum_lookback = int(float(self.GetParameter("bear-momentum-lookback") or 10))
         
         # =====================================================
+        # v1.3: DYNAMIC ALLOCATION PARAMETERS
+        # =====================================================
+        # Scale position size based on how far QQQ is from slow SMA
+        # Stronger trend (farther from SMA) = larger position
+        self.dynamic_allocation = str(self.GetParameter("dynamic-allocation") or "false").lower() == "true"
+        self.bull_alloc_min = float(self.GetParameter("bull-alloc-min") or 0.30)   # Min allocation at edge of bull zone
+        self.bull_alloc_max = float(self.GetParameter("bull-alloc-max") or 1.00)   # Max allocation at full trend strength
+        self.alloc_scale_max_pct = float(self.GetParameter("alloc-scale-max-pct") or 0.10)  # 10% above SMA = max alloc
+        
         # End-of-day execution window
         self.eod_hour = 15
         self.eod_minute = 50  # Execute trades at 3:50 PM ET (10 min before close)
@@ -180,6 +193,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.Log(f"[PARAMS] Rebalance Threshold: {self.rebalance_threshold:.0%}")
         self.Log(f"[PARAMS] Max DD Exit: {self.max_drawdown_exit:.0%}, Confirm Days: {self.confirmation_days}")
         self.Log(f"[PARAMS] Bear Confirm: {self.bear_confirmation_days}d, Bear Margin: {self.bear_sma_margin:.1%}, Bear ROC Lookback: {self.bear_momentum_lookback}d")
+        self.Log(f"[PARAMS] Dynamic Alloc: {self.dynamic_allocation}, Min: {self.bull_alloc_min:.0%}, Max: {self.bull_alloc_max:.0%}, Scale Max: {self.alloc_scale_max_pct:.0%}")
         
         # =====================================================
         # ADD SECURITIES
@@ -291,7 +305,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                 self.Debug(f"[SQL] Failed to initialize: {e}")
                 self.db = None
         
-        self.Debug("TQQQPositionTrendAlgorithm v1.1 Initialized")
+        self.Debug("TQQQPositionTrendAlgorithm v1.3 Initialized")
     
     # =========================================================
     # DAILY BAR HANDLER — QQQ REGIME DETECTION
@@ -428,10 +442,57 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                 return raw_regime
             return self.current_regime
     
+    def _calculate_dynamic_allocation(self, base_allocation: float, regime: MarketRegime) -> float:
+        """
+        v1.3: Scale allocation based on QQQ distance from slow SMA.
+        
+        In bull: farther above SMA → larger position (trend is strong)
+        In bear: farther below SMA → larger position (bear trend is strong)
+        When dynamic_allocation is False, returns base_allocation unchanged.
+        
+        Formula (linear scaling):
+          distance_pct = abs(qqq_price - sma_slow) / sma_slow
+          scale = clamp(distance_pct / alloc_scale_max_pct, 0, 1)
+          allocation = bull_alloc_min + scale * (bull_alloc_max - bull_alloc_min)
+        """
+        if not self.dynamic_allocation:
+            return base_allocation
+        
+        if self.sma_slow_value <= 0 or self.last_qqq_close <= 0:
+            return base_allocation
+        
+        # Calculate distance from slow SMA
+        distance_pct = abs(self.last_qqq_close - self.sma_slow_value) / self.sma_slow_value
+        
+        # Linear scale: 0 at SMA, 1 at alloc_scale_max_pct away
+        if self.alloc_scale_max_pct > 0:
+            scale = min(distance_pct / self.alloc_scale_max_pct, 1.0)
+        else:
+            scale = 1.0
+        
+        # For bull regime, use bull_alloc_min/max
+        if regime == MarketRegime.BULL:
+            dynamic_alloc = self.bull_alloc_min + scale * (self.bull_alloc_max - self.bull_alloc_min)
+        elif regime == MarketRegime.BEAR:
+            # Bear uses same scaling but with bear_allocation as ceiling
+            bear_min = self.bull_alloc_min  # Reuse min for symmetry
+            dynamic_alloc = bear_min + scale * (self.bear_allocation - bear_min)
+        else:
+            return base_allocation
+        
+        # Clamp to valid range
+        dynamic_alloc = max(0.0, min(dynamic_alloc, 1.0))
+        
+        self.Log(f"[DYNAMIC] QQQ={self.last_qqq_close:.2f} SMA{self.sma_slow_period}={self.sma_slow_value:.2f} "
+                 f"dist={distance_pct:.2%} scale={scale:.2f} alloc={dynamic_alloc:.1%}")
+        
+        return dynamic_alloc
+    
     def _generate_signal(self) -> None:
         """
         Generate trading signal based on current regime.
         Sets pending_action for end-of-day execution.
+        v1.3: Uses dynamic allocation scaling when enabled.
         """
         if self.drawdown_exit_triggered:
             self.pending_action = "GO_FLAT"
@@ -443,11 +504,11 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         
         if self.current_regime == MarketRegime.BULL:
             target_symbol = self.tqqq
-            target_allocation = self.bull_allocation
+            target_allocation = self._calculate_dynamic_allocation(self.bull_allocation, MarketRegime.BULL)
         
         elif self.current_regime == MarketRegime.BEAR:
             target_symbol = self.sqqq
-            target_allocation = self.bear_allocation
+            target_allocation = self._calculate_dynamic_allocation(self.bear_allocation, MarketRegime.BEAR)
         
         elif self.current_regime == MarketRegime.MIXED:
             if self.use_cash_zone:

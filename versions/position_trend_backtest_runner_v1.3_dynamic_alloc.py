@@ -85,6 +85,11 @@ class PositionTrendBacktestConfig:
     bear_sma_margin: float = 0.02     # QQQ must be this % below slow SMA for bear
     bear_momentum_lookback: int = 10  # ROC lookback days for bear momentum check
     
+    # v1.3: Dynamic allocation parameters
+    dynamic_allocation: bool = False   # Enable distance-based position scaling
+    bull_alloc_min: float = 0.30       # Min allocation at edge of bull zone
+    bull_alloc_max: float = 1.00       # Max allocation at full trend strength
+    alloc_scale_max_pct: float = 0.10  # Distance % from SMA that maps to max allocation
 
 
 class PositionTrendBacktestRunner:
@@ -188,6 +193,10 @@ class PositionTrendBacktestRunner:
             "bear-momentum-lookback": str(config.bear_momentum_lookback),
             
             # v1.3: Dynamic allocation
+            "dynamic-allocation": str(config.dynamic_allocation).lower(),
+            "bull-alloc-min": str(config.bull_alloc_min),
+            "bull-alloc-max": str(config.bull_alloc_max),
+            "alloc-scale-max-pct": str(config.alloc_scale_max_pct),
             
             # Session tracking
             "session-id": config.session_id,
@@ -665,6 +674,7 @@ class PositionTrendParameterOptimizer:
         'max_drawdown_exit',
         'confirmation_days',
         'bear_confirmation_days', 'bear_sma_margin', 'bear_momentum_lookback',
+        'dynamic_allocation', 'bull_alloc_min', 'bull_alloc_max', 'alloc_scale_max_pct',
     ]
     
     DEFAULTS = {
@@ -682,6 +692,10 @@ class PositionTrendParameterOptimizer:
         'bear_confirmation_days': 5,
         'bear_sma_margin': 0.02,
         'bear_momentum_lookback': 10,
+        'dynamic_allocation': False,
+        'bull_alloc_min': 0.30,
+        'bull_alloc_max': 1.00,
+        'alloc_scale_max_pct': 0.10,
     }
     
     def __init__(self, connection_string: str = None):
@@ -715,6 +729,7 @@ class PositionTrendParameterOptimizer:
                     val = row[col]
                     if col == 'use_cash_zone':
                         val = str(val).lower() in ('true', '1', 'yes')
+                    elif col == 'dynamic_allocation':
                         val = str(val).lower() in ('true', '1', 'yes')
                     params[col] = val
                 elif col in self.DEFAULTS:
