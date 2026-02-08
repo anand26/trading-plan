@@ -57,9 +57,14 @@ Parameters:
   - bull_alloc_min: Min allocation when barely in bull zone (default 0.30)
   - bull_alloc_max: Max allocation when strong bull trend (default 1.00)
   - alloc_scale_max_pct: QQQ distance % from slow SMA that maps to max allocation (default 0.10 = 10%)
+  - roc_exit_enabled: Enable ROC deceleration-based early exit/reduction (default false)
+  - roc_exit_lookback: Days to calculate Rate of Change (default 20)
+  - roc_decel_threshold: ROC drop from peak that triggers position reduction (default 0.03 = 3%)
+  - roc_exit_threshold: Absolute ROC level that triggers full exit (default -0.01)
+  - roc_reduce_alloc: Allocation to reduce to when deceleration detected (default 0.50 = 50%)
 
 Author: Trading Plan Implementation
-Version: 1.3.0 (Dynamic Allocation Based on Trend Strength)
+Version: 1.4.0 (ROC Deceleration Exit)
 """
 
 
@@ -182,6 +187,16 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.bull_alloc_max = float(self.GetParameter("bull-alloc-max") or 1.00)   # Max allocation at full trend strength
         self.alloc_scale_max_pct = float(self.GetParameter("alloc-scale-max-pct") or 0.10)  # 10% above SMA = max alloc
         
+        # =====================================================
+        # v1.4: ROC DECELERATION EXIT PARAMETERS
+        # =====================================================
+        # Detect slowing momentum and reduce/exit before trend breaks
+        self.roc_exit_enabled = str(self.GetParameter("roc-exit-enabled") or "false").lower() == "true"
+        self.roc_exit_lookback = int(float(self.GetParameter("roc-exit-lookback") or 20))     # ROC period
+        self.roc_decel_threshold = float(self.GetParameter("roc-decel-threshold") or 0.03)    # ROC drop from peak to trigger reduce
+        self.roc_exit_threshold = float(self.GetParameter("roc-exit-threshold") or -0.01)     # Absolute ROC to trigger full exit
+        self.roc_reduce_alloc = float(self.GetParameter("roc-reduce-alloc") or 0.50)          # Reduced allocation on deceleration
+        
         # End-of-day execution window
         self.eod_hour = 15
         self.eod_minute = 50  # Execute trades at 3:50 PM ET (10 min before close)
@@ -194,6 +209,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.Log(f"[PARAMS] Max DD Exit: {self.max_drawdown_exit:.0%}, Confirm Days: {self.confirmation_days}")
         self.Log(f"[PARAMS] Bear Confirm: {self.bear_confirmation_days}d, Bear Margin: {self.bear_sma_margin:.1%}, Bear ROC Lookback: {self.bear_momentum_lookback}d")
         self.Log(f"[PARAMS] Dynamic Alloc: {self.dynamic_allocation}, Min: {self.bull_alloc_min:.0%}, Max: {self.bull_alloc_max:.0%}, Scale Max: {self.alloc_scale_max_pct:.0%}")
+        self.Log(f"[PARAMS] ROC Exit: {self.roc_exit_enabled}, Lookback: {self.roc_exit_lookback}d, Decel: {self.roc_decel_threshold:.1%}, Exit: {self.roc_exit_threshold:.1%}, Reduce: {self.roc_reduce_alloc:.0%}")
         
         # =====================================================
         # ADD SECURITIES
@@ -236,6 +252,13 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.entry_price: float = 0.0
         self.entry_time: Optional[datetime] = None
         self.entry_quantity: int = 0
+        
+        # =====================================================
+        # v1.4: ROC EXIT STATE TRACKING
+        # =====================================================
+        self.current_roc: float = 0.0              # Current QQQ Rate of Change
+        self.roc_peak_in_regime: float = 0.0        # Peak ROC since entering current regime
+        self.roc_state: str = "FULL"                # FULL, REDUCED, or EXITED
         
         # =====================================================
         # TRADE EXECUTION FLAGS
@@ -305,7 +328,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                 self.Debug(f"[SQL] Failed to initialize: {e}")
                 self.db = None
         
-        self.Debug("TQQQPositionTrendAlgorithm v1.3 Initialized")
+        self.Debug("TQQQPositionTrendAlgorithm v1.4 Initialized")
     
     # =========================================================
     # DAILY BAR HANDLER — QQQ REGIME DETECTION
@@ -363,6 +386,13 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
             
             self.current_regime = new_regime
             self.regime_start_time = self.Time
+            
+            # v1.4: Reset ROC tracking on regime change
+            self.roc_peak_in_regime = 0.0
+            self.roc_state = "FULL"
+        
+        # v1.4: Update ROC and check for deceleration
+        self._update_roc_state(qqq_price)
         
         # Set pending action based on current regime
         self._generate_signal()
@@ -488,11 +518,67 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         
         return dynamic_alloc
     
+    def _update_roc_state(self, qqq_price: float) -> None:
+        """
+        v1.4: Calculate QQQ Rate of Change and detect deceleration.
+        
+        Tracks ROC peak within current regime. When ROC decelerates
+        (drops from peak by roc_decel_threshold), signals position reduction.
+        When ROC goes below roc_exit_threshold, signals full exit.
+        When ROC recovers above peak - threshold, restores full position.
+        """
+        if not self.roc_exit_enabled:
+            return
+        
+        if len(self.qqq_closes) < self.roc_exit_lookback:
+            return
+        
+        # Calculate Rate of Change
+        closes_list = list(self.qqq_closes)
+        price_n_ago = closes_list[-self.roc_exit_lookback]
+        if price_n_ago <= 0:
+            return
+        self.current_roc = (qqq_price - price_n_ago) / price_n_ago
+        
+        # Only apply ROC exit during BULL (protecting TQQQ profits)
+        # Bear positions are already small and short-lived
+        if self.current_regime != MarketRegime.BULL:
+            self.roc_state = "FULL"
+            return
+        
+        # Track peak ROC in this regime
+        if self.current_roc > self.roc_peak_in_regime:
+            self.roc_peak_in_regime = self.current_roc
+        
+        # Check for full exit: ROC went negative (or below threshold)
+        if self.current_roc < self.roc_exit_threshold:
+            if self.roc_state != "EXITED":
+                self.Log(f"[ROC EXIT] ROC={self.current_roc:.2%} < exit_threshold={self.roc_exit_threshold:.2%} "
+                         f"| Peak ROC was {self.roc_peak_in_regime:.2%} → EXITING")
+                self.roc_state = "EXITED"
+            return
+        
+        # Check for deceleration: ROC dropped from peak by more than threshold
+        roc_drop = self.roc_peak_in_regime - self.current_roc
+        if roc_drop >= self.roc_decel_threshold and self.roc_peak_in_regime > 0:
+            if self.roc_state == "FULL":
+                self.Log(f"[ROC DECEL] ROC={self.current_roc:.2%} dropped {roc_drop:.2%} from peak "
+                         f"{self.roc_peak_in_regime:.2%} → REDUCING to {self.roc_reduce_alloc:.0%}")
+            self.roc_state = "REDUCED"
+            return
+        
+        # ROC is healthy — full position
+        if self.roc_state != "FULL":
+            self.Log(f"[ROC RECOVER] ROC={self.current_roc:.2%} recovered "
+                     f"(drop={roc_drop:.2%} < threshold={self.roc_decel_threshold:.2%}) → FULL")
+            self.roc_state = "FULL"
+    
     def _generate_signal(self) -> None:
         """
         Generate trading signal based on current regime.
         Sets pending_action for end-of-day execution.
         v1.3: Uses dynamic allocation scaling when enabled.
+        v1.4: Applies ROC deceleration exit overlay.
         """
         if self.drawdown_exit_triggered:
             self.pending_action = "GO_FLAT"
@@ -505,6 +591,16 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         if self.current_regime == MarketRegime.BULL:
             target_symbol = self.tqqq
             target_allocation = self._calculate_dynamic_allocation(self.bull_allocation, MarketRegime.BULL)
+            
+            # v1.4: ROC exit overlay — can reduce or override bull allocation
+            if self.roc_exit_enabled:
+                if self.roc_state == "EXITED":
+                    # Momentum collapsed — go to cash even though regime is still BULL
+                    target_symbol = None
+                    target_allocation = 0.0
+                elif self.roc_state == "REDUCED":
+                    # Momentum decelerating — reduce position
+                    target_allocation = min(target_allocation, self.roc_reduce_alloc)
         
         elif self.current_regime == MarketRegime.BEAR:
             target_symbol = self.sqqq

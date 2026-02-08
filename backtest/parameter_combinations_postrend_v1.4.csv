@@ -1,0 +1,38 @@
+sma_fast,sma_slow,bull_allocation,bear_allocation,use_cash_zone,mixed_allocation,rebalance_threshold,confirmation_days,bear_confirmation_days,bear_sma_margin,bear_momentum_lookback,dynamic_allocation,bull_alloc_min,bull_alloc_max,alloc_scale_max_pct,roc_exit_enabled,roc_exit_lookback,roc_decel_threshold,roc_exit_threshold,roc_reduce_alloc
+# CONTROL: Static allocation, no ROC exit (reproduces v1.0 baseline)
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,false,20,0.03,-0.01,0.50
+# ====== ROC EXIT ON SMA 50/200 ======
+# Lookback=10d (short-term momentum), vary decel + exit thresholds
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.02,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.03,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.05,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.03,-0.02,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.05,-0.02,0.50
+# Lookback=20d (medium-term momentum), vary decel + exit thresholds
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.02,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.03,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.05,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.03,-0.02,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.05,-0.02,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.03,-0.03,0.50
+# Lookback=30d (slower momentum), vary decel + exit thresholds
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,30,0.03,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,30,0.05,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,30,0.05,-0.02,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,30,0.07,-0.02,0.50
+# Vary reduce_alloc (how much to cut when decelerating)
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.03,-0.01,0.30
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.03,-0.01,0.70
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.05,-0.02,0.30
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.05,-0.02,0.70
+# "Exit only" mode — no reduction step, just exit when ROC negative (reduce=0.0 effectively)
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.99,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.99,-0.02,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.99,-0.01,0.50
+# Tight decel with generous exit — "reduce early, exit late"
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.02,-0.03,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.02,-0.05,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.02,-0.03,0.30
+# Wide decel with tight exit — "stay full longer, but bail fast on reversal"
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,20,0.07,-0.01,0.50
+50,200,0.90,0.0,true,0.30,0.05,1,5,0.02,10,false,0.30,1.00,0.10,true,10,0.07,-0.01,0.70

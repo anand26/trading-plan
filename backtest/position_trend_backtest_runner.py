@@ -90,6 +90,13 @@ class PositionTrendBacktestConfig:
     bull_alloc_min: float = 0.30       # Min allocation at edge of bull zone
     bull_alloc_max: float = 1.00       # Max allocation at full trend strength
     alloc_scale_max_pct: float = 0.10  # Distance % from SMA that maps to max allocation
+    
+    # v1.4: ROC deceleration exit parameters
+    roc_exit_enabled: bool = False     # Enable ROC-based early exit/reduction
+    roc_exit_lookback: int = 20        # ROC calculation period in days
+    roc_decel_threshold: float = 0.03  # ROC drop from peak to trigger reduction
+    roc_exit_threshold: float = -0.01  # Absolute ROC level to trigger full exit
+    roc_reduce_alloc: float = 0.50     # Allocation when deceleration detected
 
 
 class PositionTrendBacktestRunner:
@@ -197,6 +204,13 @@ class PositionTrendBacktestRunner:
             "bull-alloc-min": str(config.bull_alloc_min),
             "bull-alloc-max": str(config.bull_alloc_max),
             "alloc-scale-max-pct": str(config.alloc_scale_max_pct),
+            
+            # v1.4: ROC deceleration exit
+            "roc-exit-enabled": str(config.roc_exit_enabled).lower(),
+            "roc-exit-lookback": str(config.roc_exit_lookback),
+            "roc-decel-threshold": str(config.roc_decel_threshold),
+            "roc-exit-threshold": str(config.roc_exit_threshold),
+            "roc-reduce-alloc": str(config.roc_reduce_alloc),
             
             # Session tracking
             "session-id": config.session_id,
@@ -675,6 +689,7 @@ class PositionTrendParameterOptimizer:
         'confirmation_days',
         'bear_confirmation_days', 'bear_sma_margin', 'bear_momentum_lookback',
         'dynamic_allocation', 'bull_alloc_min', 'bull_alloc_max', 'alloc_scale_max_pct',
+        'roc_exit_enabled', 'roc_exit_lookback', 'roc_decel_threshold', 'roc_exit_threshold', 'roc_reduce_alloc',
     ]
     
     DEFAULTS = {
@@ -696,6 +711,11 @@ class PositionTrendParameterOptimizer:
         'bull_alloc_min': 0.30,
         'bull_alloc_max': 1.00,
         'alloc_scale_max_pct': 0.10,
+        'roc_exit_enabled': False,
+        'roc_exit_lookback': 20,
+        'roc_decel_threshold': 0.03,
+        'roc_exit_threshold': -0.01,
+        'roc_reduce_alloc': 0.50,
     }
     
     def __init__(self, connection_string: str = None):
@@ -730,6 +750,8 @@ class PositionTrendParameterOptimizer:
                     if col == 'use_cash_zone':
                         val = str(val).lower() in ('true', '1', 'yes')
                     elif col == 'dynamic_allocation':
+                        val = str(val).lower() in ('true', '1', 'yes')
+                    elif col == 'roc_exit_enabled':
                         val = str(val).lower() in ('true', '1', 'yes')
                     params[col] = val
                 elif col in self.DEFAULTS:
