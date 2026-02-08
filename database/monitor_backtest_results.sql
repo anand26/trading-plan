@@ -12,12 +12,12 @@ GO
 DECLARE @backtestid VARCHAR(100);
 DECLARE @outcomeid BIGINT;
 DECLARE @strategyid VARCHAR(50);
-
+		
 -- Get latest backtest
-SET @outcomeid = (SELECT TOP 1 OutcomeId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
-SET @backtestid = (SELECT TOP 1 BacktestId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
-SET @strategyid = (SELECT TOP 1 StrategyId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
-
+SET @outcomeid = '12984'--(SELECT TOP 1 OutcomeId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
+SET @backtestid = 'POSTREND_20260207_184652_2d0df58a'--(SELECT TOP 1 BacktestId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
+SET @strategyid = 'POSITION_TREND'--(SELECT TOP 1 StrategyId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
+		
 PRINT '============================================================================';
 PRINT 'LATEST BACKTEST MONITORING REPORT';
 PRINT '============================================================================';
