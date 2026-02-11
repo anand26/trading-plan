@@ -1,264 +1,360 @@
 """
-Download 1-minute stock data from Massive.com using boto3 SDK.
-Fetches TQQQ, SQQQ, and QQQ data for the last 2 years.
+Polygon.io Free-Tier 1-Minute Data Downloader
+==============================================
+Downloads 1-minute OHLCV data for QQQ, SQQQ, TQQQ from Polygon.io.
 
-Data is stored as daily CSV.GZ files at:
-  us_stocks_sip/minute_aggs_v1/YYYY/MM/YYYY-MM-DD.csv.gz
+Free-tier limits (as of 2026):
+  • Up to 2 years of historical aggregate data
+  • 5 API calls per minute
 
-Each file contains all symbols for that trading day.
-We download the files and filter for our target symbols.
+Strategy:
+  • Fetches one day at a time per ticker (each day = 1 API call)
+  • Pauses automatically to stay under 5 calls/min
+  • Saves a checkpoint file so you can resume interrupted downloads
+  • Outputs one CSV per ticker with all 1m bars merged
+
+Usage:
+  python download_massive_data.py --start 2024-02-08 --end 2026-02-08
+  python download_massive_data.py --start 2024-02-08               # end defaults to today
+  python download_massive_data.py --resume                          # resume from checkpoint
 """
 
-import boto3
-from botocore.config import Config
-from datetime import datetime, timedelta
-import gzip
-import pandas as pd
-from pathlib import Path
-import io
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import argparse
+import json
+import os
 import sys
+import time
+from datetime import date, datetime, timedelta
+from pathlib import Path
 
-# Initialize a session using your credentials (GitHub OAuth)
-session = boto3.Session(
-    aws_access_key_id='49396bfa-bc7d-4998-b177-bfe701369439',
-    aws_secret_access_key='WCZBkB2cU6m8sU4YNejf5lR704GPwuQh',
-)
+import pandas as pd
+import requests
+from dotenv import load_dotenv
 
-# Create a client with your session and specify the endpoint
-s3 = session.client(
-    's3',
-    endpoint_url='https://files.massive.com',
-    config=Config(signature_version='s3v4'),
-)
+load_dotenv()
 
-# Configuration
-SYMBOLS = ['TQQQ', 'SQQQ', 'QQQ']
-PREFIX = 'us_stocks_sip/minute_aggs_v1'
-OUTPUT_DIR = Path('Data/massive')
-BUCKET_NAME = 'flatfiles'
+# ── Constants ────────────────────────────────────────────────────────────────
+POLYGON_BASE = "https://api.polygon.io"
+TICKERS = ["QQQ", "SQQQ", "TQQQ"]
+OUTPUT_DIR = Path("Data/polygon_1m")
+CHECKPOINT_FILE = OUTPUT_DIR / "_checkpoint.json"
 
-# Calculate date range (last 2 years)
-END_DATE = datetime.now()
-START_DATE = END_DATE - timedelta(days=365 * 2)
+# Free-tier rate limit: 5 calls/min → 1 call every 12s to be safe
+RATE_LIMIT_PAUSE = 12.5  # seconds between API calls
 
 
-def list_buckets():
-    """List all available buckets."""
-    try:
-        response = s3.list_buckets()
-        print("Available buckets:")
-        for bucket in response.get('Buckets', []):
-            print(f"  - {bucket['Name']}")
-        return [b['Name'] for b in response.get('Buckets', [])]
-    except Exception as e:
-        print(f"Error listing buckets: {e}")
-        return []
+# ── CLI ──────────────────────────────────────────────────────────────────────
+def parse_args() -> argparse.Namespace:
+    two_years_ago = (date.today() - timedelta(days=730)).isoformat()
+
+    p = argparse.ArgumentParser(
+        description="Download 1-minute OHLCV from Polygon.io (free tier, 2yr history)"
+    )
+    p.add_argument(
+        "--start", type=str, default=two_years_ago,
+        help=f"Start date YYYY-MM-DD (default: {two_years_ago})",
+    )
+    p.add_argument(
+        "--end", type=str, default=date.today().isoformat(),
+        help=f"End date YYYY-MM-DD (default: {date.today().isoformat()})",
+    )
+    p.add_argument(
+        "--api-key", type=str,
+        default=os.environ.get("POLYGON_API_KEY"),
+        help="Polygon API key (or set POLYGON_API_KEY in .env)",
+    )
+    p.add_argument(
+        "--out", type=str, default=str(OUTPUT_DIR),
+        help=f"Output directory (default: {OUTPUT_DIR})",
+    )
+    p.add_argument(
+        "--resume", action="store_true",
+        help="Resume from last checkpoint (ignores --start/--end)",
+    )
+    return p.parse_args()
 
 
-def check_bucket_access(bucket_name: str):
-    """Check if we can access a bucket and list its contents."""
-    print(f"\nChecking access to bucket: {bucket_name}")
-    try:
-        response = s3.list_objects_v2(Bucket=bucket_name, MaxKeys=10)
-        if 'Contents' in response:
-            print(f"  Contents found:")
-            for obj in response['Contents'][:5]:
-                print(f"    - {obj['Key']}")
-        if 'CommonPrefixes' in response:
-            print(f"  Prefixes found:")
-            for prefix in response.get('CommonPrefixes', [])[:5]:
-                print(f"    - {prefix['Prefix']}")
-        return True
-    except Exception as e:
-        print(f"  Error: {e}")
-        return False
+# ── Helpers ──────────────────────────────────────────────────────────────────
+def trading_days(start: str, end: str) -> list[str]:
+    """Return weekday dates between start and end (inclusive) as YYYY-MM-DD."""
+    s = datetime.strptime(start, "%Y-%m-%d")
+    e = datetime.strptime(end, "%Y-%m-%d")
+    days = []
+    cur = s
+    while cur <= e:
+        if cur.weekday() < 5:  # Mon–Fri
+            days.append(cur.strftime("%Y-%m-%d"))
+        cur += timedelta(days=1)
+    return days
 
 
-def test_file_download():
-    """Test downloading files from different data sources."""
-    test_files = [
-        # Try different data sources
-        "global_crypto/day_aggs_v1/2013/11/2013-11-01.csv.gz",
-        "us_stocks_sip/minute_aggs_v1/2003/09/2003-09-10.csv.gz",
-        "us_stocks_sip/minute_aggs_v1/2024/01/2024-01-15.csv.gz",
-        "us_stocks_sip/minute_aggs_v1/2025/01/2025-01-10.csv.gz",
-    ]
-    
-    accessible_prefixes = []
-    
-    for test_key in test_files:
-        print(f"\nTesting download of: {test_key}")
-        
-        # Method 1: Direct get_object
-        try:
-            response = s3.get_object(Bucket=BUCKET_NAME, Key=test_key)
-            content = response['Body'].read()
-            print(f"  [OK] Direct download: {len(content)} bytes")
-            accessible_prefixes.append(test_key.split('/')[0])
+def load_checkpoint(path: Path) -> dict:
+    if path.exists():
+        return json.loads(path.read_text())
+    return {}
+
+
+def save_checkpoint(path: Path, state: dict):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2))
+
+
+def fetch_day(ticker: str, day: str, api_key: str) -> list[dict]:
+    """
+    Fetch all 1-minute bars for a single ticker on a single day.
+    Uses the v2 aggs endpoint with pagination (next_url).
+    Returns a list of bar dicts.
+    """
+    url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/1/minute/{day}/{day}"
+    params = {
+        "adjusted": "true",
+        "sort": "asc",
+        "limit": 50000,
+        "apiKey": api_key,
+    }
+
+    bars: list[dict] = []
+    next_url: str | None = None
+
+    while True:
+        if next_url:
+            # next_url is a full URL; append API key
+            r = requests.get(next_url, params={"apiKey": api_key}, timeout=30)
+        else:
+            r = requests.get(url, params=params, timeout=30)
+
+        if r.status_code == 429:
+            # Rate-limited — wait and retry
+            print("      ⏳ Rate-limited, waiting 60s…")
+            time.sleep(60)
             continue
-        except Exception as e:
-            print(f"  [FAIL] Direct download: {e}")
-        
-        # Method 2: Try with presigned URL
-        try:
-            import requests
-            url = s3.generate_presigned_url(
-                'get_object',
-                Params={'Bucket': BUCKET_NAME, 'Key': test_key},
-                ExpiresIn=3600
-            )
-            print(f"  Trying presigned URL...")
-            resp = requests.get(url)
-            if resp.status_code == 200:
-                print(f"  [OK] Presigned URL: {len(resp.content)} bytes")
-                accessible_prefixes.append(test_key.split('/')[0])
+
+        r.raise_for_status()
+        data = r.json()
+
+        status = data.get("status")
+        if status not in ("OK", "DELAYED"):
+            # No data for this day (weekend/holiday/empty)
+            break
+
+        chunk = data.get("results") or []
+        bars.extend(chunk)
+
+        next_url = data.get("next_url")
+        if not next_url:
+            break
+
+    return bars
+
+
+def bars_to_df(bars: list[dict], ticker: str) -> pd.DataFrame:
+    """Convert raw Polygon bars to a clean DataFrame."""
+    if not bars:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(bars)
+    df = df.rename(columns={
+        "t": "timestamp_ms",
+        "o": "open",
+        "h": "high",
+        "l": "low",
+        "c": "close",
+        "v": "volume",
+        "vw": "vwap",
+        "n": "transactions",
+    })
+    df["datetime"] = pd.to_datetime(df["timestamp_ms"], unit="ms", utc=True)
+    df["datetime"] = df["datetime"].dt.tz_convert("America/New_York")
+    df["ticker"] = ticker
+
+    cols = ["datetime", "ticker", "open", "high", "low", "close", "volume", "vwap", "transactions"]
+    return df[[c for c in cols if c in df.columns]]
+
+
+# ── Main download loop ──────────────────────────────────────────────────────
+def download_all(args):
+    api_key = args.api_key
+    if not api_key:
+        print("ERROR: Polygon API key required.")
+        print("  Set POLYGON_API_KEY in .env or pass --api-key")
+        sys.exit(2)
+
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load or init checkpoint
+    checkpoint = load_checkpoint(CHECKPOINT_FILE)
+    if args.resume and checkpoint:
+        start = checkpoint.get("next_start", args.start)
+        end = checkpoint.get("end", args.end)
+        print(f"Resuming from checkpoint: {start}")
+    else:
+        start = args.start
+        end = args.end
+        checkpoint = {"start": start, "end": end, "completed": {}}
+
+    days = trading_days(start, end)
+    total_days = len(days)
+    total_calls = total_days * len(TICKERS)
+    est_minutes = (total_calls * RATE_LIMIT_PAUSE) / 60
+
+    print()
+    print("=" * 65)
+    print("  Polygon.io Free-Tier 1-Minute Data Downloader")
+    print("=" * 65)
+    print(f"  Tickers     : {', '.join(TICKERS)}")
+    print(f"  Date range  : {start} → {end}")
+    print(f"  Trading days: {total_days}")
+    print(f"  API calls   : {total_calls} ({len(TICKERS)} tickers × {total_days} days)")
+    print(f"  Est. time   : ~{est_minutes:.0f} minutes (rate limit: 5 calls/min)")
+    print(f"  Output      : {out_dir.absolute()}")
+    print("=" * 65)
+    print()
+
+    # Per-ticker accumulators: load existing partial data if present
+    ticker_data: dict[str, list[pd.DataFrame]] = {t: [] for t in TICKERS}
+
+    for t in TICKERS:
+        partial = out_dir / f"{t}_1m_partial.csv"
+        if partial.exists():
+            df = pd.read_csv(partial, parse_dates=["datetime"])
+            ticker_data[t].append(df)
+            print(f"  Loaded {len(df):,} existing rows for {t}")
+
+    # Track progress
+    completed = checkpoint.get("completed", {})
+    calls_made = 0
+    start_time = time.time()
+
+    for day_idx, day in enumerate(days):
+        for ticker in TICKERS:
+            key = f"{ticker}:{day}"
+
+            # Skip already-downloaded days
+            if key in completed:
                 continue
-            else:
-                print(f"  [FAIL] Presigned URL: HTTP {resp.status_code}")
-        except Exception as e:
-            print(f"  [FAIL] Presigned URL: {e}")
-    
-    return list(set(accessible_prefixes))
+
+            # Rate-limit: pause between calls
+            if calls_made > 0:
+                time.sleep(RATE_LIMIT_PAUSE)
+
+            # Progress
+            elapsed = time.time() - start_time
+            pct = (day_idx * len(TICKERS) + TICKERS.index(ticker)) / total_calls * 100
+            remaining_calls = total_calls - calls_made
+            eta_sec = remaining_calls * RATE_LIMIT_PAUSE
+            eta_min = eta_sec / 60
+
+            print(
+                f"  [{pct:5.1f}%] {ticker} {day}  "
+                f"(call {calls_made + 1}/{total_calls}, "
+                f"ETA ~{eta_min:.0f}min)…",
+                end="",
+                flush=True,
+            )
+
+            try:
+                bars = fetch_day(ticker, day, api_key)
+                calls_made += 1
+
+                if bars:
+                    df = bars_to_df(bars, ticker)
+                    ticker_data[ticker].append(df)
+                    print(f"  ✓ {len(df)} bars")
+                else:
+                    print(f"  – no data")
+
+            except requests.HTTPError as e:
+                if "403" in str(e):
+                    print(f"\n\n  ✗ 403 Forbidden — your free tier may not cover this date range.")
+                    print(f"    Polygon free tier allows 2 years from today.")
+                    print(f"    Try: --start {(date.today() - timedelta(days=730)).isoformat()}")
+                    # Save what we have
+                    _save_partials(ticker_data, out_dir)
+                    save_checkpoint(CHECKPOINT_FILE, {
+                        "next_start": day, "end": end, "completed": completed,
+                    })
+                    sys.exit(1)
+                else:
+                    print(f"  ✗ {e}")
+                    calls_made += 1
+
+            except Exception as e:
+                print(f"  ✗ {e}")
+                calls_made += 1
+
+            # Mark completed
+            completed[key] = True
+
+        # Save checkpoint after each full day (all tickers)
+        checkpoint["completed"] = completed
+        checkpoint["next_start"] = day
+        save_checkpoint(CHECKPOINT_FILE, checkpoint)
+
+        # Save partial CSVs every 50 days to avoid data loss
+        if (day_idx + 1) % 50 == 0:
+            _save_partials(ticker_data, out_dir)
+
+    # ── Final save ───────────────────────────────────────────────────────
+    _save_final(ticker_data, out_dir, start, end)
 
 
-def get_trading_days(start_date: datetime, end_date: datetime) -> list:
-    """Generate list of trading days (weekdays only, holidays not filtered)."""
-    trading_days = []
-    current = start_date
-    while current <= end_date:
-        # Skip weekends (5 = Saturday, 6 = Sunday)
-        if current.weekday() < 5:
-            trading_days.append(current)
-        current += timedelta(days=1)
-    return trading_days
-
-
-def download_and_filter_day(date: datetime, symbols: list) -> pd.DataFrame:
-    """Download a day's data and filter for specific symbols."""
-    key = f"{PREFIX}/{date.year}/{date.month:02d}/{date.strftime('%Y-%m-%d')}.csv.gz"
-    
-    try:
-        response = s3.get_object(Bucket=BUCKET_NAME, Key=key)
-        
-        # Decompress and read CSV
-        with gzip.GzipFile(fileobj=io.BytesIO(response['Body'].read())) as gz:
-            df = pd.read_csv(gz)
-        
-        # Filter for target symbols (try common column names)
-        symbol_col = None
-        for col in ['ticker', 'symbol', 'Symbol', 'Ticker', 'sym']:
-            if col in df.columns:
-                symbol_col = col
-                break
-        
-        if symbol_col:
-            df = df[df[symbol_col].isin(symbols)]
-        
-        if not df.empty:
-            df['date'] = date.strftime('%Y-%m-%d')
-            print(f"[OK] {date.strftime('%Y-%m-%d')}: {len(df)} rows")
-        
-        return df
-        
-    except s3.exceptions.NoSuchKey:
-        # File doesn't exist (holiday or no data)
-        return pd.DataFrame()
-    except Exception as e:
-        if 'NoSuchKey' in str(e) or '404' in str(e):
-            return pd.DataFrame()
-        print(f"[FAIL] {date.strftime('%Y-%m-%d')}: {e}")
-        return pd.DataFrame()
-
-
-def download_all_data(symbols: list, start_date: datetime, end_date: datetime) -> dict:
-    """Download all data for the given date range."""
-    trading_days = get_trading_days(start_date, end_date)
-    print(f"\nDownloading {len(trading_days)} trading days of data...")
-    print(f"Symbols: {symbols}")
-    print(f"Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
-    
-    all_data = {symbol: [] for symbol in symbols}
-    
-    # Process days sequentially to avoid rate limiting
-    for i, date in enumerate(trading_days):
-        if i % 50 == 0:
-            print(f"\nProgress: {i}/{len(trading_days)} days processed...")
-        
-        df = download_and_filter_day(date, symbols)
-        
-        if not df.empty:
-            # Determine symbol column
-            symbol_col = None
-            for col in ['ticker', 'symbol', 'Symbol', 'Ticker', 'sym']:
-                if col in df.columns:
-                    symbol_col = col
-                    break
-            
-            if symbol_col:
-                for symbol in symbols:
-                    symbol_df = df[df[symbol_col] == symbol]
-                    if not symbol_df.empty:
-                        all_data[symbol].append(symbol_df)
-    
-    return all_data
-
-
-def save_data(all_data: dict, output_dir: Path):
-    """Save downloaded data to CSV files."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    for symbol, dfs in all_data.items():
+def _save_partials(ticker_data: dict, out_dir: Path):
+    """Save intermediate partial CSVs (for crash recovery)."""
+    for ticker, dfs in ticker_data.items():
         if dfs:
             combined = pd.concat(dfs, ignore_index=True)
-            output_file = output_dir / f"{symbol}_1min_{START_DATE.strftime('%Y%m%d')}_{END_DATE.strftime('%Y%m%d')}.csv"
-            combined.to_csv(output_file, index=False)
-            print(f"Saved {symbol}: {len(combined)} rows -> {output_file}")
-        else:
-            print(f"No data found for {symbol}")
+            combined = combined.drop_duplicates(subset=["datetime"], keep="last")
+            combined = combined.sort_values("datetime").reset_index(drop=True)
+            path = out_dir / f"{ticker}_1m_partial.csv"
+            combined.to_csv(path, index=False)
 
 
+def _save_final(ticker_data: dict, out_dir: Path, start: str, end: str):
+    """Merge, deduplicate, and save final per-ticker CSVs."""
+    print()
+    print("=" * 65)
+    print("  Saving final files…")
+    print("=" * 65)
+
+    for ticker, dfs in ticker_data.items():
+        if not dfs:
+            print(f"  {ticker}: no data downloaded")
+            continue
+
+        combined = pd.concat(dfs, ignore_index=True)
+        combined = combined.drop_duplicates(subset=["datetime"], keep="last")
+        combined = combined.sort_values("datetime").reset_index(drop=True)
+
+        # Final output file
+        fname = f"{ticker}_1m_{start}_to_{end}.csv"
+        path = out_dir / fname
+        combined.to_csv(path, index=False)
+
+        size_mb = path.stat().st_size / (1024 * 1024)
+        earliest = combined["datetime"].min()
+        latest = combined["datetime"].max()
+        print(f"  {ticker}: {len(combined):>10,} bars  |  {earliest} → {latest}  |  {size_mb:.1f} MB")
+        print(f"         → {path}")
+
+    # Clean up partial files and checkpoint
+    for ticker in TICKERS:
+        partial = out_dir / f"{ticker}_1m_partial.csv"
+        if partial.exists():
+            partial.unlink()
+
+    if CHECKPOINT_FILE.exists():
+        CHECKPOINT_FILE.unlink()
+
+    print()
+    print("  ✓ Download complete! Checkpoint and partial files cleaned up.")
+    print("=" * 65)
+
+
+# ── Entry point ──────────────────────────────────────────────────────────────
 def main():
-    """Main function to download all data."""
-    print("=" * 60)
-    print("Massive.com Data Downloader")
-    print("=" * 60)
-    print(f"\nDownloading 1-minute data for {SYMBOLS}")
-    print(f"Date range: {START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}")
-    print(f"Output directory: {OUTPUT_DIR.absolute()}")
-    
-    # First, list available buckets and test access
-    print("\n=== Checking Available Buckets ===")
-    buckets = list_buckets()
-    
-    for bucket in buckets[:5]:
-        check_bucket_access(bucket)
-    
-    # Test file download
-    print("\n=== Testing File Downloads ===")
-    accessible = test_file_download()
-    
-    if not accessible:
-        print("\n" + "=" * 60)
-        print("ERROR: Unable to download files from any data source.")
-        print("Your account may not have download permissions for this data.")
-        print("Please check your Massive.com subscription/access tier.")
-        print("=" * 60)
-        return
-    
-    print(f"\nAccessible data sources: {accessible}")
-    
-    # Download all data
-    all_data = download_all_data(SYMBOLS, START_DATE, END_DATE)
-    
-    # Save to CSV files
-    print("\n" + "=" * 60)
-    print("Saving data...")
-    save_data(all_data, OUTPUT_DIR)
-    
-    print("\n" + "=" * 60)
-    print("Download complete!")
-    print("=" * 60)
+    args = parse_args()
+    download_all(args)
 
 
 if __name__ == "__main__":

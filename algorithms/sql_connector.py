@@ -92,14 +92,15 @@ class TradingDBConnector:
         self,
         algorithm: Optional['QCAlgorithm'] = None,
         config: Optional[ConnectionConfig] = None,
-        enabled: bool = True
+        enabled: bool = True,
+        strategy_id: str = "TQQQ_SCALPING"
     ):
         self.algorithm = algorithm
         self.config = config or ConnectionConfig()
         self.enabled = enabled and HAS_PYODBC
         self.conn: Optional[Any] = None
         self.session_id: Optional[str] = None
-        self.strategy_id: str = "TQQQ_SCALPING"
+        self.strategy_id: str = strategy_id
         
         # Batch queue for performance (batch inserts)
         self._signal_queue: List[Dict] = []
@@ -765,16 +766,18 @@ def create_connector(
     algorithm: Optional['QCAlgorithm'] = None,
     server: str = "localhost",
     database: str = "TradingDB",
-    enabled: bool = True
+    enabled: bool = True,
+    strategy_id: str = "TQQQ_SCALPING"
 ) -> TradingDBConnector:
     """
     Factory function to create a configured connector.
     
     Usage:
         db = create_connector(self)  # In algorithm Initialize()
+        db = create_connector(self, strategy_id="QQQ_MEAN_REVERSION")
     """
     config = ConnectionConfig(server=server, database=database)
-    return TradingDBConnector(algorithm=algorithm, config=config, enabled=enabled)
+    return TradingDBConnector(algorithm=algorithm, config=config, enabled=enabled, strategy_id=strategy_id)
 
 
 # ============================================

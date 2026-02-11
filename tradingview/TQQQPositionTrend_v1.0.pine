@@ -1,0 +1,263 @@
+// ============================================================================
+// TQQQ/SQQQ Position Trend Following Strategy v1.0
+// ============================================================================
+// 
+// Port of LEAN TQQQPositionTrendAlgorithm v1.0 to TradingView Pine Script
+//
+// HOW TO USE:
+//   1. Open TQQQ chart (Daily timeframe)
+//   2. Add this strategy (Indicators → My Scripts)
+//   3. All parameters are in Strategy Properties (gear icon)
+//   4. Strategy fetches QQQ data via request.security() for regime detection
+//   5. Trades TQQQ directly on bull, goes flat on bear/mixed
+//   6. For SQQQ bear positions: also apply to SQQQ chart (set Mode = SQQQ)
+//
+// MODES:
+//   TQQQ Mode: Apply to TQQQ chart — buys TQQQ in bull, flat otherwise
+//   SQQQ Mode: Apply to SQQQ chart — buys SQQQ in bear, flat otherwise
+//   Run BOTH charts simultaneously to replicate the full LEAN strategy.
+//
+// Version: 1.0.0 (Position Trend Following)
+// ============================================================================
+
+//@version=6
+strategy("TQQQ Position Trend v1.0", 
+     overlay=true, 
+     initial_capital=100000, 
+     default_qty_type=strategy.percent_of_equity, 
+     default_qty_value=90,
+     commission_type=strategy.commission.percent,
+     commission_value=0.0,
+     slippage=0,
+     process_orders_on_close=false,
+     calc_on_every_tick=false,
+     max_bars_back=500)
+
+// ============================================================================
+// STRATEGY INPUTS (exposed in Strategy Properties)
+// ============================================================================
+
+// --- Chart Mode ---
+chartMode = input.string("TQQQ", "Chart Mode", options=["TQQQ", "SQQQ"], group="Setup", tooltip="TQQQ: trades long TQQQ in bull regime.\nSQQQ: trades long SQQQ in bear regime.\nApply to matching chart symbol.")
+qqqSymbol = input.symbol("NASDAQ:QQQ", "QQQ Symbol", group="Setup", tooltip="QQQ symbol for regime detection SMAs")
+
+// --- SMA Parameters ---
+smaFastPeriod = input.int(50, "SMA Fast Period", minval=5, maxval=200, step=5, group="Regime Detection")
+smaSlowPeriod = input.int(200, "SMA Slow Period", minval=50, maxval=500, step=10, group="Regime Detection")
+
+// --- Allocation Parameters ---
+bullAllocation = input.float(0.90, "Bull Allocation (%)", minval=0.0, maxval=1.0, step=0.05, group="Allocation", tooltip="% of equity in TQQQ during bull regime")
+bearAllocation = input.float(0.00, "Bear Allocation (%)", minval=0.0, maxval=1.0, step=0.05, group="Allocation", tooltip="% of equity in SQQQ during bear regime. 0 = no bear position")
+useCashZone = input.bool(true, "Use Cash Zone (flat in mixed)", group="Allocation", tooltip="Go 100% cash when regime is mixed (between SMAs)")
+mixedAllocation = input.float(0.30, "Mixed Zone Allocation (%)", minval=0.0, maxval=1.0, step=0.05, group="Allocation", tooltip="Allocation if NOT using cash zone in mixed regime")
+mixedInstrument = input.string("TQQQ", "Mixed Zone Instrument", options=["TQQQ", "SQQQ"], group="Allocation", tooltip="Which leveraged ETF to hold in mixed zone")
+
+// --- Confirmation ---
+confirmationDays = input.int(1, "Confirmation Days", minval=1, maxval=20, step=1, group="Risk Management", tooltip="Consecutive days in new regime before switching")
+
+// --- Risk Management ---
+rebalanceThreshold = input.float(0.05, "Rebalance Threshold", minval=0.01, maxval=0.20, step=0.01, group="Risk Management", tooltip="Min allocation drift to trigger rebalance")
+maxDrawdownExit = input.float(0.0, "Max Drawdown Exit (%)", minval=0.0, maxval=0.50, step=0.05, group="Risk Management", tooltip="Emergency exit if drawdown exceeds this. 0 = disabled")
+
+// --- Visual Settings ---
+showRegimeBackground = input.bool(true, "Show Regime Background", group="Display")
+showSMAs = input.bool(true, "Show QQQ SMAs on Chart", group="Display")
+
+// ============================================================================
+// QQQ DATA FOR REGIME DETECTION (fetched via request.security)
+// ============================================================================
+
+// TIMING (matches LEAN's execution flow):
+//   LEAN:  Day N 4:00 PM close → regime detected → Day N+1 3:50 PM → trade fills
+//   Pine:  Day N close → regime detected → Day N+1 open → trade fills
+//   (process_orders_on_close=false makes orders fill at NEXT bar's open)
+//
+// IMPORTANT: Always use "1D" timeframe for regime detection, regardless of chart TF.
+// This ensures the strategy produces the same ~52 trades whether on 1D, 1H, or 15m chart.
+
+qqqClose = request.security(qqqSymbol, "1D", close)
+smaFast = request.security(qqqSymbol, "1D", ta.sma(close, smaFastPeriod))
+smaSlow = request.security(qqqSymbol, "1D", ta.sma(close, smaSlowPeriod))
+
+// Detect new daily bar — only act once per day, not on every intraday bar
+newDailyBar = ta.change(time("1D")) != 0
+
+// ============================================================================
+// REGIME DETECTION (based on current QQQ close, trades fill next day open)
+// ============================================================================
+
+// Raw regime classification
+aboveFast = qqqClose > smaFast
+aboveSlow = qqqClose > smaSlow
+
+// Regime enum: 1=BULL, -1=BEAR, 0=MIXED
+rawRegime = aboveFast and aboveSlow ? 1 : (not aboveFast and not aboveSlow ? -1 : 0)
+
+// Confirmation filter (inlined — Pine v6 can't modify global vars in functions)
+var int confirmedRegime = 0      // Current confirmed regime
+var int pendingRegime = 0        // Regime waiting for confirmation
+var int pendingCount = 0         // Days in pending regime
+
+int newRegime = confirmedRegime
+if confirmationDays <= 1
+    newRegime := rawRegime
+else
+    if rawRegime == confirmedRegime
+        pendingRegime := confirmedRegime
+        pendingCount := 0
+        newRegime := confirmedRegime
+    else if rawRegime == pendingRegime
+        pendingCount += 1
+        if pendingCount >= confirmationDays
+            pendingCount := 0
+            newRegime := rawRegime
+        else
+            newRegime := confirmedRegime
+    else
+        pendingRegime := rawRegime
+        pendingCount := 1
+        newRegime := confirmedRegime
+
+regimeChanged = newRegime != confirmedRegime
+confirmedRegime := newRegime
+
+// ============================================================================
+// POSITION LOGIC — depends on Chart Mode
+// ============================================================================
+// TQQQ Mode: Buy chart symbol (TQQQ) in BULL, flat otherwise
+// SQQQ Mode: Buy chart symbol (SQQQ) in BEAR, flat otherwise
+// ============================================================================
+
+var int currentPosition = 0         // 1=long, 0=flat
+var float currentAllocation = 0.0
+var float peakEquity = strategy.initial_capital
+var bool ddExitTriggered = false
+
+// Determine target
+targetPosition = 0
+targetAllocation = 0.0
+
+if chartMode == "TQQQ"
+    // TQQQ chart: long in bull, possibly in mixed
+    if confirmedRegime == 1  // BULL
+        targetPosition := 1
+        targetAllocation := bullAllocation
+    else if confirmedRegime == 0  // MIXED
+        if not useCashZone and mixedInstrument == "TQQQ"
+            targetPosition := 1
+            targetAllocation := mixedAllocation
+        else
+            targetPosition := 0
+            targetAllocation := 0.0
+    else  // BEAR
+        targetPosition := 0
+        targetAllocation := 0.0
+else
+    // SQQQ chart: long in bear, possibly in mixed
+    if confirmedRegime == -1  // BEAR
+        if bearAllocation > 0
+            targetPosition := 1
+            targetAllocation := bearAllocation
+        else
+            targetPosition := 0
+            targetAllocation := 0.0
+    else if confirmedRegime == 0  // MIXED
+        if not useCashZone and mixedInstrument == "SQQQ"
+            targetPosition := 1
+            targetAllocation := mixedAllocation
+        else
+            targetPosition := 0
+            targetAllocation := 0.0
+    else  // BULL
+        targetPosition := 0
+        targetAllocation := 0.0
+
+// Emergency drawdown check
+if maxDrawdownExit > 0 and not ddExitTriggered
+    currentEquity = strategy.equity
+    if currentEquity > peakEquity
+        peakEquity := currentEquity
+    drawdown = (peakEquity - currentEquity) / peakEquity
+    if drawdown >= maxDrawdownExit
+        ddExitTriggered := true
+        targetPosition := 0
+        targetAllocation := 0.0
+
+// ============================================================================
+// TRADE EXECUTION — trades the actual chart symbol (TQQQ or SQQQ)
+// ============================================================================
+
+positionChanged = targetPosition != currentPosition
+allocationChanged = math.abs(targetAllocation - currentAllocation) > rebalanceThreshold
+shouldAct = positionChanged or (not positionChanged and allocationChanged and targetPosition != 0)
+
+// Only trade on new daily bars — prevents multiple trades per day on intraday charts
+shouldAct := shouldAct and newDailyBar
+
+tradeLabel = chartMode == "TQQQ" ? "TQQQ_Long" : "SQQQ_Long"
+
+if shouldAct
+    // Close existing
+    if currentPosition == 1
+        strategy.close(tradeLabel, comment="Exit " + chartMode)
+    
+    // Enter new
+    if targetPosition == 1 and targetAllocation > 0
+        qty = math.floor(strategy.equity * targetAllocation / close)
+        if qty > 0
+            regimeText = chartMode == "TQQQ" ? "Bull" : "Bear"
+            strategy.entry(tradeLabel, strategy.long, qty=qty, comment=regimeText + "→" + chartMode + " " + str.tostring(targetAllocation * 100, "#") + "%")
+    
+    currentPosition := targetPosition
+    currentAllocation := targetAllocation
+
+// Update peak for drawdown tracking
+if strategy.equity > peakEquity
+    peakEquity := strategy.equity
+
+// ============================================================================
+// VISUAL OVERLAYS
+// ============================================================================
+
+// Plot QQQ SMAs on the chart (as reference — different price scale)
+plot(showSMAs ? smaFast : na, "QQQ SMA Fast", color=color.new(color.blue, 50), linewidth=1, display=display.none)
+plot(showSMAs ? smaSlow : na, "QQQ SMA Slow", color=color.new(color.red, 50), linewidth=1, display=display.none)
+
+// Regime background colors
+bgColor = confirmedRegime == 1 ? color.new(color.green, 90) : (confirmedRegime == -1 ? color.new(color.red, 90) : color.new(color.gray, 95))
+bgcolor(showRegimeBackground ? bgColor : na, title="Regime Background")
+
+// Regime change markers
+plotshape(regimeChanged and confirmedRegime == 1, "Bull Signal", shape.triangleup, location.belowbar, color.green, size=size.normal)
+plotshape(regimeChanged and confirmedRegime == -1, "Bear Signal", shape.triangledown, location.abovebar, color.red, size=size.normal)
+plotshape(regimeChanged and confirmedRegime == 0, "Mixed Signal", shape.diamond, location.abovebar, color.orange, size=size.small)
+
+// ============================================================================
+// INFO TABLE
+// ============================================================================
+
+var table infoTable = table.new(position.top_right, 2, 9, bgcolor=color.new(color.black, 80), border_width=1)
+
+if barstate.islastconfirmedhistory
+    regimeStr = confirmedRegime == 1 ? "🟢 BULL" : (confirmedRegime == -1 ? "🔴 BEAR" : "🟡 MIXED")
+    posStr = currentPosition == 1 ? chartMode + " " + str.tostring(currentAllocation * 100, "#") + "%" : "CASH (flat)"
+    modeColor = chartMode == "TQQQ" ? color.green : color.red
+    
+    table.cell(infoTable, 0, 0, "Mode", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 0, chartMode + " Chart", text_color=modeColor, text_size=size.small)
+    table.cell(infoTable, 0, 1, "Regime", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 1, regimeStr, text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 0, 2, "Position", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 2, posStr, text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 0, 3, "QQQ Close", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 3, str.tostring(qqqClose, "#.##"), text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 0, 4, "QQQ SMA " + str.tostring(smaFastPeriod), text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 4, str.tostring(smaFast, "#.##"), text_color=color.blue, text_size=size.small)
+    table.cell(infoTable, 0, 5, "QQQ SMA " + str.tostring(smaSlowPeriod), text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 5, str.tostring(smaSlow, "#.##"), text_color=color.red, text_size=size.small)
+    table.cell(infoTable, 0, 6, "Equity", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 6, "$" + str.tostring(strategy.equity, "#,###"), text_color=color.green, text_size=size.small)
+    table.cell(infoTable, 0, 7, "Return", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 7, str.tostring((strategy.equity / strategy.initial_capital - 1) * 100, "#.#") + "%", text_color=strategy.equity > strategy.initial_capital ? color.green : color.red, text_size=size.small)
+    table.cell(infoTable, 0, 8, "Confirm Days", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 8, str.tostring(confirmationDays), text_color=color.white, text_size=size.small)

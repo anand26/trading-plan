@@ -16,62 +16,68 @@ except ImportError:
 # endregion
 
 """
-TQQQ/SQQQ Position Trend Following Strategy
-==============================================
-Strategy: Position trading based on QQQ moving average regime detection
-Concept:  Use slow+fast SMAs on QQQ (proxy for NDX) to determine market
-          regime, then hold leveraged ETFs for weeks/months.
+GLD Position Trend Following Strategy
+========================================
+Strategy: Position trading based on GLD's own moving average trend detection
+Concept:  Use slow+fast SMAs on GLD to determine gold trend,
+          then hold GLD (non-leveraged) during uptrends, cash during downtrends.
 
-Regime Detection (using QQQ):
-  - BULL:  QQQ > SMA_fast AND QQQ > SMA_slow  → Long TQQQ
-  - BEAR:  QQQ < SMA_fast AND QQQ < SMA_slow  → Long SQQQ
-  - MIXED: QQQ between the two SMAs            → Cash (flat) or reduced position
+This is the HEDGING companion to TQQQPositionTrendAlgorithm (Config B).
+- TQQQ strategy profits in equity bull markets
+- GLD strategy profits in uncertainty/inflation/USD weakness
+- The two are uncorrelated, reducing portfolio-level drawdowns
+
+Regime Detection (using GLD itself):
+  - BULL:  GLD > SMA_fast AND GLD > SMA_slow  → Long GLD
+  - BEAR:  GLD < SMA_fast AND GLD < SMA_slow  → Cash (flat)
+  - MIXED: GLD between the two SMAs            → Cash (flat) or reduced position
 
 Key Design Principles:
-  - Signal source: QQQ daily closes (proxy for Nasdaq-100)
+  - Signal source: GLD daily closes (direct, not a proxy)
   - Trade execution: End-of-day only (last 10 minutes of session)
   - Hold period: Weeks to months (not intraday)
   - Position sizing: Dynamic % of portfolio per regime
-  - Simplicity: The edge comes from riding trends, not over-optimizing
-  - No shorting: SQQQ serves as the bear instrument
+  - Simplicity: Same proven SMA crossover logic as TQQQ strategy
+  - No leverage: GLD is non-leveraged, no decay risk
 
 Parameters:
   - sma_fast: Fast SMA period (default 50 days)
   - sma_slow: Slow SMA period (default 200 days)
-  - bull_allocation: % of portfolio in TQQQ during bull (default 0.90)
-  - bear_allocation: % of portfolio in SQQQ during bear (default 0.50)
+  - bull_allocation: % of portfolio in GLD during bull (default 0.90)
+  - bear_allocation: % of portfolio in cash during bear (default 0 = all cash)
   - use_cash_zone: Whether to go flat when regime is mixed (default true)
-  - mixed_allocation: % allocation during mixed regime if not flat (default 0.30)
+  - mixed_allocation: % allocation during mixed regime if not flat (default 0)
   - rebalance_threshold: Min allocation drift to trigger rebalance (default 0.05)
   - max_drawdown_exit: Emergency exit if portfolio drawdown exceeds this (0=disabled)
+  - confirmation_days: Days to confirm regime change (default 1)
 
 Author: Trading Plan Implementation
-Version: 1.0.0 (Position Trend Following)
+Version: 1.0.0 (GLD Position Trend Following - Hedge Strategy)
 """
 
 
-class MarketRegime(Enum):
-    """QQQ-based market regime classification"""
-    BULL = "bull"       # QQQ above both SMAs → long TQQQ
-    BEAR = "bear"       # QQQ below both SMAs → long SQQQ
-    MIXED = "mixed"     # QQQ between SMAs → cash or reduced
+class GoldRegime(Enum):
+    """GLD-based trend classification"""
+    BULL = "bull"       # GLD above both SMAs → long GLD
+    BEAR = "bear"       # GLD below both SMAs → cash
+    MIXED = "mixed"     # GLD between SMAs → cash or reduced
     UNKNOWN = "unknown" # Not enough data
 
 
 @dataclass
-class RegimeChange:
+class GoldRegimeChange:
     """Record of a regime transition"""
     timestamp: datetime
     old_regime: str
     new_regime: str
-    qqq_price: float
+    gld_price: float
     sma_fast_value: float
     sma_slow_value: float
 
 
 @dataclass
-class PositionTrendTradeRecord:
-    """Record of a completed position"""
+class GLDTradeRecord:
+    """Record of a completed GLD position"""
     symbol: str
     regime: str
     entry_time: datetime
@@ -85,12 +91,12 @@ class PositionTrendTradeRecord:
     exit_reason: str
 
 
-class TQQQPositionTrendAlgorithm(QCAlgorithm):
+class GLDPositionTrendAlgorithm(QCAlgorithm):
     """
-    Position Trend Following on TQQQ/SQQQ.
+    Position Trend Following on GLD.
     
-    Uses QQQ daily SMAs to detect market regime.
-    Holds TQQQ in bull trends, SQQQ in bear trends.
+    Uses GLD's own daily SMAs to detect gold trend.
+    Holds GLD in uptrends, cash in downtrends.
     Position trading — holds for weeks/months.
     Trades only in the last 10 minutes of the session.
     """
@@ -124,21 +130,20 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.SetBrokerageModel(BrokerageName.Alpaca, AccountType.Margin)
         
         # =====================================================
-        # POSITION TREND PARAMETERS
+        # GLD TREND PARAMETERS
         # =====================================================
         
-        # SMA periods for regime detection (on QQQ)
+        # SMA periods for trend detection (on GLD itself)
         self.sma_fast_period = int(float(self.GetParameter("sma-fast") or 50))
         self.sma_slow_period = int(float(self.GetParameter("sma-slow") or 200))
         
         # Allocation percentages per regime
-        self.bull_allocation = float(self.GetParameter("bull-allocation") or 0.90)    # 90% in TQQQ during bull
-        self.bear_allocation = float(self.GetParameter("bear-allocation") or 0.50)    # 50% in SQQQ during bear
+        self.bull_allocation = float(self.GetParameter("bull-allocation") or 0.90)    # 90% in GLD during uptrend
+        self.bear_allocation = float(self.GetParameter("bear-allocation") or 0.0)     # 0% = all cash during downtrend
         
         # Cash zone behavior
         self.use_cash_zone = str(self.GetParameter("use-cash-zone") or "true").lower() == "true"
-        self.mixed_allocation = float(self.GetParameter("mixed-allocation") or 0.30)  # 30% if trading in mixed zone
-        self.mixed_instrument = str(self.GetParameter("mixed-instrument") or "tqqq").lower()  # tqqq or sqqq in mixed
+        self.mixed_allocation = float(self.GetParameter("mixed-allocation") or 0.0)   # 0% in mixed zone
         
         # Rebalance threshold — only rebalance if drift exceeds this
         self.rebalance_threshold = float(self.GetParameter("rebalance-threshold") or 0.05)  # 5% drift tolerance
@@ -148,6 +153,15 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         
         # Confirmation bars — require N consecutive days in new regime before switching
         self.confirmation_days = int(float(self.GetParameter("confirmation-days") or 1))
+        
+        # Signal mode: "price" = price vs SMAs (original), "crossover" = SMA fast vs SMA slow
+        # "breakout" = buy on N-day high when SMA_fast > SMA_slow, exit on death cross or N-day low
+        # Breakout mode captures gold's spiking nature within confirmed uptrends
+        self.signal_mode = str(self.GetParameter("signal-mode") or "price").lower()
+        
+        # Breakout lookback — only used in "breakout" mode
+        # Buy when GLD hits N-day high (during uptrend), sell on N-day low or death cross
+        self.breakout_lookback = int(float(self.GetParameter("breakout-lookback") or 20))
         
         # End-of-day execution window
         self.eod_hour = 15
@@ -159,26 +173,27 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.Log(f"[PARAMS] Cash Zone: {self.use_cash_zone}, Mixed Alloc: {self.mixed_allocation:.0%}")
         self.Log(f"[PARAMS] Rebalance Threshold: {self.rebalance_threshold:.0%}")
         self.Log(f"[PARAMS] Max DD Exit: {self.max_drawdown_exit:.0%}, Confirm Days: {self.confirmation_days}")
+        self.Log(f"[PARAMS] Signal Mode: {self.signal_mode}, Breakout Lookback: {self.breakout_lookback}")
         
         # =====================================================
-        # ADD SECURITIES
+        # ADD SECURITIES — GLD only (simple!)
         # =====================================================
-        self.tqqq = self.AddEquity("TQQQ", Resolution.Minute).Symbol
-        self.sqqq = self.AddEquity("SQQQ", Resolution.Minute).Symbol
-        self.qqq = self.AddEquity("QQQ", Resolution.Minute).Symbol
+        self.gld = self.AddEquity("GLD", Resolution.Minute).Symbol
         
         # =====================================================
-        # DAILY BAR CONSOLIDATOR FOR QQQ (regime detection)
+        # DAILY BAR CONSOLIDATOR FOR GLD (trend detection)
         # =====================================================
-        self.qqq_daily_consolidator = TradeBarConsolidator(timedelta(days=1))
-        self.qqq_daily_consolidator.DataConsolidated += self.OnQQQDailyBar
-        self.SubscriptionManager.AddConsolidator(self.qqq, self.qqq_daily_consolidator)
+        self.gld_daily_consolidator = TradeBarConsolidator(timedelta(days=1))
+        self.gld_daily_consolidator.DataConsolidated += self.OnGLDDailyBar
+        self.SubscriptionManager.AddConsolidator(self.gld, self.gld_daily_consolidator)
         
         # =====================================================
-        # QQQ DAILY CLOSE HISTORY FOR SMAs (manual calculation)
+        # GLD DAILY CLOSE HISTORY FOR SMAs (manual calculation)
         # =====================================================
-        max_lookback = self.sma_slow_period + 10  # Slow SMA needs the most history
-        self.qqq_closes: deque = deque(maxlen=max_lookback)
+        max_lookback = max(self.sma_slow_period + 10, self.breakout_lookback + 10)
+        self.gld_closes: deque = deque(maxlen=max_lookback)
+        self.gld_highs: deque = deque(maxlen=max_lookback)   # For breakout detection
+        self.gld_lows: deque = deque(maxlen=max_lookback)    # For breakout exit
         
         # Current SMA values
         self.sma_fast_value: float = 0.0
@@ -187,16 +202,15 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         # =====================================================
         # REGIME TRACKING
         # =====================================================
-        self.current_regime = MarketRegime.UNKNOWN
-        self.pending_regime = MarketRegime.UNKNOWN  # Regime waiting for confirmation
-        self.pending_regime_count: int = 0          # Days in pending regime
+        self.current_regime = GoldRegime.UNKNOWN
+        self.pending_regime = GoldRegime.UNKNOWN
+        self.pending_regime_count: int = 0
         self.regime_start_time: Optional[datetime] = None
-        self.regime_history: List[RegimeChange] = []
+        self.regime_history: List[GoldRegimeChange] = []
         
         # =====================================================
         # POSITION TRACKING
         # =====================================================
-        self.current_symbol: Optional[Symbol] = None   # Currently held symbol (TQQQ or SQQQ)
         self.entry_price: float = 0.0
         self.entry_time: Optional[datetime] = None
         self.entry_quantity: int = 0
@@ -204,10 +218,9 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         # =====================================================
         # TRADE EXECUTION FLAGS
         # =====================================================
-        self.signal_generated_today = False     # Only generate signal once per day
-        self.pending_action: Optional[str] = None  # "BUY_TQQQ", "BUY_SQQQ", "GO_FLAT", "REBALANCE", None
+        self.signal_generated_today = False
+        self.pending_action: Optional[str] = None  # "BUY_GLD", "GO_FLAT", "REBALANCE", None
         self.pending_allocation: float = 0.0
-        self.pending_target_symbol: Optional[Symbol] = None
         
         # Track if we already acted today
         self.last_action_date: Optional[datetime] = None
@@ -215,13 +228,13 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         # =====================================================
         # TRADE HISTORY
         # =====================================================
-        self.trade_history: List[PositionTrendTradeRecord] = []
+        self.trade_history: List[GLDTradeRecord] = []
         
         # =====================================================
         # PERFORMANCE TRACKING
         # =====================================================
         self.drawdown_exit_triggered = False
-        self.last_qqq_close: float = 0.0
+        self.last_gld_close: float = 0.0
         
         # =====================================================
         # WARMUP — need enough days to build slow SMA
@@ -247,7 +260,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                 
                 session_type = "BACKTEST" if not self.LiveMode else "LIVE"
                 params_snapshot = {
-                    "strategy": "POSITION_TREND",
+                    "strategy": "GLD_POSITION_TREND",
                     "sma_fast": self.sma_fast_period,
                     "sma_slow": self.sma_slow_period,
                     "bull_allocation": self.bull_allocation,
@@ -256,6 +269,8 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                     "mixed_allocation": self.mixed_allocation,
                     "confirmation_days": self.confirmation_days,
                     "max_drawdown_exit": self.max_drawdown_exit,
+                    "signal_mode": self.signal_mode,
+                    "breakout_lookback": self.breakout_lookback,
                 }
                 
                 session_id = str(self.GetParameter("session-id") or "")
@@ -269,40 +284,42 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
                 self.Debug(f"[SQL] Failed to initialize: {e}")
                 self.db = None
         
-        self.Debug("TQQQPositionTrendAlgorithm v1.0 Initialized")
+        self.Debug("GLDPositionTrendAlgorithm v1.0 Initialized")
     
     # =========================================================
-    # DAILY BAR HANDLER — QQQ REGIME DETECTION
+    # DAILY BAR HANDLER — GLD TREND DETECTION
     # =========================================================
     
-    def OnQQQDailyBar(self, sender, bar: TradeBar) -> None:
+    def OnGLDDailyBar(self, sender, bar: TradeBar) -> None:
         """
-        Handle completed QQQ daily bar.
-        Calculate SMAs, detect regime, set pending action.
+        Handle completed GLD daily bar.
+        Calculate SMAs, detect trend, set pending action.
         """
-        self.qqq_closes.append(float(bar.Close))
-        self.last_qqq_close = float(bar.Close)
+        self.gld_closes.append(float(bar.Close))
+        self.gld_highs.append(float(bar.High))
+        self.gld_lows.append(float(bar.Low))
+        self.last_gld_close = float(bar.Close)
         
         # Need enough history for slow SMA
-        if len(self.qqq_closes) < self.sma_slow_period:
+        if len(self.gld_closes) < self.sma_slow_period:
             return
         
         if self.IsWarmingUp:
             # Still compute SMAs during warmup to be ready
-            closes_list = list(self.qqq_closes)
+            closes_list = list(self.gld_closes)
             self.sma_fast_value = sum(closes_list[-self.sma_fast_period:]) / self.sma_fast_period
             self.sma_slow_value = sum(closes_list[-self.sma_slow_period:]) / self.sma_slow_period
             return
         
         # Calculate SMAs
-        closes_list = list(self.qqq_closes)
+        closes_list = list(self.gld_closes)
         self.sma_fast_value = sum(closes_list[-self.sma_fast_period:]) / self.sma_fast_period
         self.sma_slow_value = sum(closes_list[-self.sma_slow_period:]) / self.sma_slow_period
         
-        qqq_price = float(bar.Close)
+        gld_price = float(bar.Close)
         
         # Determine raw regime
-        raw_regime = self._classify_regime(qqq_price)
+        raw_regime = self._classify_regime(gld_price)
         
         # Apply confirmation filter
         new_regime = self._apply_confirmation(raw_regime)
@@ -311,18 +328,18 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
             old_regime = self.current_regime
             
             # Log regime change
-            change = RegimeChange(
+            change = GoldRegimeChange(
                 timestamp=self.Time,
                 old_regime=old_regime.value,
                 new_regime=new_regime.value,
-                qqq_price=qqq_price,
+                gld_price=gld_price,
                 sma_fast_value=self.sma_fast_value,
                 sma_slow_value=self.sma_slow_value,
             )
             self.regime_history.append(change)
             
             self.Log(f"[REGIME] {old_regime.value} → {new_regime.value} | "
-                     f"QQQ={qqq_price:.2f}, SMA{self.sma_fast_period}={self.sma_fast_value:.2f}, "
+                     f"GLD={gld_price:.2f}, SMA{self.sma_fast_period}={self.sma_fast_value:.2f}, "
                      f"SMA{self.sma_slow_period}={self.sma_slow_value:.2f}")
             
             self.current_regime = new_regime
@@ -331,31 +348,46 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         # Set pending action based on current regime
         self._generate_signal()
     
-    def _classify_regime(self, qqq_price: float) -> MarketRegime:
-        """Classify market regime based on QQQ price vs SMAs."""
+    def _classify_regime(self, gld_price: float) -> GoldRegime:
+        """Classify gold trend.
+        
+        Three modes:
+          'price':     BULL if price > SMA_fast AND price > SMA_slow
+          'crossover': BULL if SMA_fast > SMA_slow (golden/death cross)
+          'breakout':  Uses SMA crossover for trend direction, but entry/exit
+                       is handled separately in _generate_signal via breakout logic.
+                       Regime here just tracks the macro trend filter.
+        """
         if self.sma_fast_value <= 0 or self.sma_slow_value <= 0:
-            return MarketRegime.UNKNOWN
+            return GoldRegime.UNKNOWN
         
-        above_fast = qqq_price > self.sma_fast_value
-        above_slow = qqq_price > self.sma_slow_value
-        
-        if above_fast and above_slow:
-            return MarketRegime.BULL
-        elif not above_fast and not above_slow:
-            return MarketRegime.BEAR
+        if self.signal_mode in ("crossover", "breakout"):
+            # SMA crossover: only two states (BULL / BEAR), no MIXED
+            if self.sma_fast_value > self.sma_slow_value:
+                return GoldRegime.BULL
+            else:
+                return GoldRegime.BEAR
         else:
-            return MarketRegime.MIXED
+            # Original: price vs both SMAs
+            above_fast = gld_price > self.sma_fast_value
+            above_slow = gld_price > self.sma_slow_value
+            
+            if above_fast and above_slow:
+                return GoldRegime.BULL
+            elif not above_fast and not above_slow:
+                return GoldRegime.BEAR
+            else:
+                return GoldRegime.MIXED
     
-    def _apply_confirmation(self, raw_regime: MarketRegime) -> MarketRegime:
+    def _apply_confirmation(self, raw_regime: GoldRegime) -> GoldRegime:
         """
         Require N consecutive days in a new regime before switching.
-        This reduces whipsaws around the SMA crossover points.
+        Reduces whipsaws around the SMA crossover points.
         """
         if self.confirmation_days <= 1:
             return raw_regime
         
         if raw_regime == self.current_regime:
-            # Already in this regime — reset pending
             self.pending_regime = self.current_regime
             self.pending_regime_count = 0
             return self.current_regime
@@ -363,13 +395,11 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         if raw_regime == self.pending_regime:
             self.pending_regime_count += 1
             if self.pending_regime_count >= self.confirmation_days:
-                # Confirmed — switch
                 self.pending_regime_count = 0
                 return raw_regime
             else:
-                return self.current_regime  # Not yet confirmed
+                return self.current_regime
         else:
-            # New pending regime
             self.pending_regime = raw_regime
             self.pending_regime_count = 1
             if self.confirmation_days <= 1:
@@ -380,107 +410,152 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         """
         Generate trading signal based on current regime.
         Sets pending_action for end-of-day execution.
+        
+        In breakout mode:
+          - Trend filter: SMA_fast > SMA_slow (uptrend confirmed)
+          - Entry: GLD closes at N-day high → buy (momentum breakout)
+          - Hold: Stay invested as long as trend intact
+          - Exit: SMA_fast < SMA_slow (death cross) OR GLD closes at N-day low
         """
         if self.drawdown_exit_triggered:
             self.pending_action = "GO_FLAT"
             self.pending_allocation = 0.0
             return
         
-        target_symbol = None
+        # ===== BREAKOUT MODE =====
+        if self.signal_mode == "breakout":
+            self._generate_breakout_signal()
+            return
+        
+        # ===== PRICE / CROSSOVER MODE (original) =====
         target_allocation = 0.0
+        want_position = False
         
-        if self.current_regime == MarketRegime.BULL:
-            target_symbol = self.tqqq
+        if self.current_regime == GoldRegime.BULL:
             target_allocation = self.bull_allocation
+            want_position = True
         
-        elif self.current_regime == MarketRegime.BEAR:
-            target_symbol = self.sqqq
+        elif self.current_regime == GoldRegime.BEAR:
             target_allocation = self.bear_allocation
+            want_position = target_allocation > 0
         
-        elif self.current_regime == MarketRegime.MIXED:
+        elif self.current_regime == GoldRegime.MIXED:
             if self.use_cash_zone:
-                # Go flat in mixed zone
-                target_symbol = None
                 target_allocation = 0.0
+                want_position = False
             else:
-                # Reduced position in mixed zone
-                if self.mixed_instrument == "tqqq":
-                    target_symbol = self.tqqq
-                else:
-                    target_symbol = self.sqqq
                 target_allocation = self.mixed_allocation
+                want_position = target_allocation > 0
         
         else:
             # UNKNOWN — stay flat
-            target_symbol = None
             target_allocation = 0.0
+            want_position = False
         
         # Determine action needed
-        current_holdings_tqqq = self.Portfolio[self.tqqq].Quantity
-        current_holdings_sqqq = self.Portfolio[self.sqqq].Quantity
-        is_holding_tqqq = current_holdings_tqqq > 0
-        is_holding_sqqq = current_holdings_sqqq > 0
+        current_holdings = self.Portfolio[self.gld].Quantity
+        is_holding = current_holdings > 0
         
-        if target_symbol is None and not is_holding_tqqq and not is_holding_sqqq:
+        if not want_position and not is_holding:
             # Already flat, nothing to do
             self.pending_action = None
             return
         
-        if target_symbol is None:
+        if not want_position and is_holding:
             # Need to go flat
             self.pending_action = "GO_FLAT"
             self.pending_allocation = 0.0
-            self.pending_target_symbol = None
             return
         
-        # Need to switch sides?
-        if target_symbol == self.tqqq and is_holding_sqqq:
-            self.pending_action = "SWITCH_TO_TQQQ"
+        if want_position and not is_holding:
+            # Need to enter
+            self.pending_action = "BUY_GLD"
             self.pending_allocation = target_allocation
-            self.pending_target_symbol = self.tqqq
             return
         
-        if target_symbol == self.sqqq and is_holding_tqqq:
-            self.pending_action = "SWITCH_TO_SQQQ"
-            self.pending_allocation = target_allocation
-            self.pending_target_symbol = self.sqqq
-            return
-        
-        # Already on correct side — check for rebalance
-        if target_symbol == self.tqqq and is_holding_tqqq:
-            current_pct = self._get_holding_pct(self.tqqq)
+        # Already holding — check for rebalance
+        if want_position and is_holding:
+            current_pct = self._get_holding_pct()
             if abs(current_pct - target_allocation) > self.rebalance_threshold:
                 self.pending_action = "REBALANCE"
                 self.pending_allocation = target_allocation
-                self.pending_target_symbol = self.tqqq
             else:
                 self.pending_action = None
-            return
-        
-        if target_symbol == self.sqqq and is_holding_sqqq:
-            current_pct = self._get_holding_pct(self.sqqq)
-            if abs(current_pct - target_allocation) > self.rebalance_threshold:
-                self.pending_action = "REBALANCE"
-                self.pending_allocation = target_allocation
-                self.pending_target_symbol = self.sqqq
-            else:
-                self.pending_action = None
-            return
-        
-        # Not holding anything, need to enter
-        if target_symbol == self.tqqq:
-            self.pending_action = "BUY_TQQQ"
-        else:
-            self.pending_action = "BUY_SQQQ"
-        self.pending_allocation = target_allocation
-        self.pending_target_symbol = target_symbol
     
-    def _get_holding_pct(self, symbol: Symbol) -> float:
-        """Get current holding as % of portfolio equity."""
+    def _generate_breakout_signal(self) -> None:
+        """
+        Breakout-within-trend signal generation.
+        
+        Logic:
+          1. TREND FILTER: SMA_fast > SMA_slow → uptrend confirmed
+          2. ENTRY: Current close >= highest high of last N days → breakout, buy
+          3. HOLD: Stay invested while trend intact
+          4. EXIT: SMA_fast < SMA_slow (death cross) → sell everything
+                   OR close <= lowest low of last N days → momentum exit
+        
+        This captures gold's tendency to spike in strong moves while
+        filtering out choppy sideways periods via the trend filter.
+        """
+        is_holding = self.Portfolio[self.gld].Quantity > 0
+        
+        # Not enough data for breakout lookback
+        if len(self.gld_highs) < self.breakout_lookback or len(self.gld_lows) < self.breakout_lookback:
+            self.pending_action = None
+            return
+        
+        gld_close = self.last_gld_close
+        
+        # N-day high/low channels (excluding today)
+        recent_highs = list(self.gld_highs)[-self.breakout_lookback - 1:-1]
+        recent_lows = list(self.gld_lows)[-self.breakout_lookback - 1:-1]
+        
+        if not recent_highs or not recent_lows:
+            self.pending_action = None
+            return
+        
+        n_day_high = max(recent_highs)
+        n_day_low = min(recent_lows)
+        
+        if self.current_regime == GoldRegime.BEAR:
+            # Death cross — exit everything regardless
+            if is_holding:
+                self.pending_action = "GO_FLAT"
+                self.pending_allocation = 0.0
+                self.Log(f"[BREAKOUT] Death cross exit | GLD={gld_close:.2f}")
+            else:
+                self.pending_action = None
+            return
+        
+        # We're in BULL regime (SMA_fast > SMA_slow)
+        if not is_holding:
+            # ENTRY: Buy on N-day high breakout (momentum confirmation)
+            if gld_close >= n_day_high:
+                self.pending_action = "BUY_GLD"
+                self.pending_allocation = self.bull_allocation
+                self.Log(f"[BREAKOUT] Entry: GLD={gld_close:.2f} >= {self.breakout_lookback}d high={n_day_high:.2f}")
+            else:
+                self.pending_action = None
+        else:
+            # HOLDING — check for exit on N-day low breakdown
+            if gld_close <= n_day_low:
+                self.pending_action = "GO_FLAT"
+                self.pending_allocation = 0.0
+                self.Log(f"[BREAKOUT] Exit: GLD={gld_close:.2f} <= {self.breakout_lookback}d low={n_day_low:.2f}")
+            else:
+                # Check rebalance
+                current_pct = self._get_holding_pct()
+                if abs(current_pct - self.bull_allocation) > self.rebalance_threshold:
+                    self.pending_action = "REBALANCE"
+                    self.pending_allocation = self.bull_allocation
+                else:
+                    self.pending_action = None
+    
+    def _get_holding_pct(self) -> float:
+        """Get current GLD holding as % of portfolio equity."""
         equity = self.Portfolio.TotalPortfolioValue
         if equity <= 0:
             return 0.0
-        holding_value = abs(self.Portfolio[symbol].HoldingsValue)
+        holding_value = abs(self.Portfolio[self.gld].HoldingsValue)
         return holding_value / equity
     
     # =========================================================
@@ -490,7 +565,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
     def OnData(self, data: Slice) -> None:
         """
         Process every minute bar.
-        Execute trades only in the last 10 minutes (3:50 PM ET).
+        Execute trades only at 3:50 PM ET.
         Check for emergency drawdown exit.
         """
         if self.IsWarmingUp:
@@ -529,113 +604,99 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.last_action_date = self.Time
         
         if action == "GO_FLAT":
-            self._close_all_positions("regime_change_flat")
+            self._close_position("regime_change_flat")
         
-        elif action == "SWITCH_TO_TQQQ":
-            self._close_all_positions("regime_switch")
-            self._enter_position(self.tqqq, self.pending_allocation, "BULL")
-        
-        elif action == "SWITCH_TO_SQQQ":
-            self._close_all_positions("regime_switch")
-            self._enter_position(self.sqqq, self.pending_allocation, "BEAR")
-        
-        elif action == "BUY_TQQQ":
-            self._enter_position(self.tqqq, self.pending_allocation, "BULL")
-        
-        elif action == "BUY_SQQQ":
-            self._enter_position(self.sqqq, self.pending_allocation, "BEAR")
+        elif action == "BUY_GLD":
+            self._enter_position(self.pending_allocation)
         
         elif action == "REBALANCE":
-            self._rebalance_position(self.pending_target_symbol, self.pending_allocation)
+            self._rebalance_position(self.pending_allocation)
     
-    def _enter_position(self, symbol: Symbol, allocation: float, regime: str) -> None:
-        """Enter a new position at the target allocation."""
+    def _enter_position(self, allocation: float) -> None:
+        """Enter a new GLD position at the target allocation."""
         equity = self.Portfolio.TotalPortfolioValue
         target_value = equity * allocation
-        price = self.Securities[symbol].Price
+        price = self.Securities[self.gld].Price
         
         if price <= 0:
-            self.Log(f"[SKIP] {symbol.Value} price is 0")
+            self.Log(f"[SKIP] GLD price is 0")
             return
         
         quantity = int(target_value / price)
         if quantity <= 0:
-            self.Log(f"[SKIP] Computed quantity is 0 for {symbol.Value}")
+            self.Log(f"[SKIP] Computed quantity is 0 for GLD")
             return
         
-        ticket = self.MarketOrder(symbol, quantity)
+        ticket = self.MarketOrder(self.gld, quantity)
         
-        self.current_symbol = symbol
         self.entry_price = price
         self.entry_time = self.Time
         self.entry_quantity = quantity
         
-        self.Log(f"[ENTER] {regime} → {symbol.Value} x{quantity} @ ~${price:.2f} "
+        regime_str = self.current_regime.value.upper()
+        self.Log(f"[ENTER] {regime_str} → GLD x{quantity} @ ~${price:.2f} "
                  f"({allocation:.0%} of ${equity:,.0f})")
     
-    def _close_all_positions(self, reason: str) -> None:
-        """Close all positions and record trades."""
-        for symbol in [self.tqqq, self.sqqq]:
-            qty = self.Portfolio[symbol].Quantity
-            if qty != 0:
-                price = self.Securities[symbol].Price
+    def _close_position(self, reason: str) -> None:
+        """Close GLD position and record trade."""
+        qty = self.Portfolio[self.gld].Quantity
+        if qty != 0:
+            price = self.Securities[self.gld].Price
+            
+            # Record completed trade
+            if self.entry_time:
+                pnl = (price - self.entry_price) * qty
+                pnl_pct = (price / self.entry_price - 1.0) if self.entry_price > 0 else 0.0
+                hold_days = (self.Time - self.entry_time).days if self.entry_time else 0
                 
-                # Record completed trade
-                if self.entry_time and self.current_symbol == symbol:
-                    pnl = (price - self.entry_price) * qty
-                    pnl_pct = (price / self.entry_price - 1.0) if self.entry_price > 0 else 0.0
-                    hold_days = (self.Time - self.entry_time).days if self.entry_time else 0
-                    
-                    regime = "BULL" if symbol == self.tqqq else "BEAR"
-                    record = PositionTrendTradeRecord(
-                        symbol=str(symbol.Value),
-                        regime=regime,
-                        entry_time=self.entry_time,
-                        exit_time=self.Time,
+                record = GLDTradeRecord(
+                    symbol="GLD",
+                    regime=self.current_regime.value,
+                    entry_time=self.entry_time,
+                    exit_time=self.Time,
+                    entry_price=self.entry_price,
+                    exit_price=price,
+                    quantity=qty,
+                    pnl=pnl,
+                    pnl_pct=pnl_pct,
+                    hold_duration_days=hold_days,
+                    exit_reason=reason,
+                )
+                self.trade_history.append(record)
+                
+                self.Log(f"[EXIT] GLD x{qty} @ ${price:.2f} | "
+                         f"P&L: ${pnl:,.2f} ({pnl_pct:+.2%}) | "
+                         f"Held: {hold_days}d | Reason: {reason}")
+            
+            self.Liquidate(self.gld)
+            
+            # SQL trade logging
+            if self.db and self.entry_time:
+                try:
+                    self.db.log_trade(
+                        symbol="GLD",
+                        side="BUY",
+                        quantity=abs(qty),
                         entry_price=self.entry_price,
                         exit_price=price,
-                        quantity=qty,
-                        pnl=pnl,
-                        pnl_pct=pnl_pct,
-                        hold_duration_days=hold_days,
+                        entry_time=self.entry_time,
+                        exit_time=self.Time,
+                        entry_reason=f"regime_{self.current_regime.value}",
                         exit_reason=reason,
                     )
-                    self.trade_history.append(record)
-                    
-                    self.Log(f"[EXIT] {symbol.Value} x{qty} @ ${price:.2f} | "
-                             f"P&L: ${pnl:,.2f} ({pnl_pct:+.2%}) | "
-                             f"Held: {hold_days}d | Reason: {reason}")
-                
-                self.Liquidate(symbol)
-                
-                # SQL trade logging (round-trip)
-                if self.db and self.entry_time:
-                    try:
-                        self.db.log_trade(
-                            symbol=str(symbol.Value),
-                            side="BUY",
-                            quantity=abs(qty),
-                            entry_price=self.entry_price,
-                            exit_price=price,
-                            entry_time=self.entry_time,
-                            exit_time=self.Time,
-                            entry_reason=f"regime_{regime.lower()}",
-                            exit_reason=reason,
-                        )
-                    except Exception as e:
-                        self.Debug(f"[SQL] Trade log failed: {e}")
+                except Exception as e:
+                    self.Debug(f"[SQL] Trade log failed: {e}")
         
-        self.current_symbol = None
         self.entry_price = 0.0
         self.entry_time = None
         self.entry_quantity = 0
     
-    def _rebalance_position(self, symbol: Symbol, target_allocation: float) -> None:
-        """Rebalance existing position to target allocation."""
+    def _rebalance_position(self, target_allocation: float) -> None:
+        """Rebalance GLD position to target allocation."""
         equity = self.Portfolio.TotalPortfolioValue
         target_value = equity * target_allocation
-        current_value = abs(self.Portfolio[symbol].HoldingsValue)
-        price = self.Securities[symbol].Price
+        current_value = abs(self.Portfolio[self.gld].HoldingsValue)
+        price = self.Securities[self.gld].Price
         
         if price <= 0:
             return
@@ -646,9 +707,9 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         if abs(delta_shares) < 1:
             return
         
-        self.MarketOrder(symbol, delta_shares)
+        self.MarketOrder(self.gld, delta_shares)
         
-        self.Log(f"[REBALANCE] {symbol.Value}: {delta_shares:+d} shares | "
+        self.Log(f"[REBALANCE] GLD: {delta_shares:+d} shares | "
                  f"Current: {current_value/equity:.1%} → Target: {target_allocation:.1%}")
     
     # =========================================================
@@ -658,7 +719,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
     def OnEndOfAlgorithm(self) -> None:
         """Log final summary statistics."""
         # Close any remaining position
-        self._close_all_positions("end_of_backtest")
+        self._close_position("end_of_backtest")
         
         # Summary
         total_pnl = sum(t.pnl for t in self.trade_history)
@@ -666,7 +727,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         losers = [t for t in self.trade_history if t.pnl <= 0]
         
         self.Log(f"\n{'='*60}")
-        self.Log(f"POSITION TREND FOLLOWING - FINAL SUMMARY")
+        self.Log(f"GLD POSITION TREND FOLLOWING - FINAL SUMMARY")
         self.Log(f"{'='*60}")
         self.Log(f"Total Trades: {len(self.trade_history)}")
         self.Log(f"Winners: {len(winners)}, Losers: {len(losers)}")
@@ -688,7 +749,7 @@ class TQQQPositionTrendAlgorithm(QCAlgorithm):
         self.Log(f"\nRegime Changes: {len(self.regime_history)}")
         for rc in self.regime_history[-10:]:  # Last 10 changes
             self.Log(f"  {rc.timestamp}: {rc.old_regime} → {rc.new_regime} "
-                     f"(QQQ=${rc.qqq_price:.2f})")
+                     f"(GLD=${rc.gld_price:.2f})")
         
         self.Log(f"{'='*60}")
         

@@ -1,15 +1,16 @@
 """
-TQQQ/SQQQ Position Trend Following - Backtest Runner
-======================================================
-Independent backtest runner for the Position Trend Following strategy.
+GLD Position Trend Following - Backtest Runner
+=================================================
+Independent backtest runner for the GLD Position Trend Following strategy.
 Executes LEAN backtests, parses results, stores in SQL.
 
-Usage:
-    python position_trend_backtest_runner.py                           # Single run with defaults
-    python position_trend_backtest_runner.py --start 2018-06-01 --end 2026-01-14  # Custom dates
-    python position_trend_backtest_runner.py --csv parameter_combinations_postrend_v1.0.csv  # Batch from CSV
+This is the HEDGE companion to the TQQQ Position Trend strategy.
+Completely independent runner — does not affect TQQQ backtesting.
 
-This runner is INDEPENDENT from the pairs, turtle, and daily MR runners.
+Usage:
+    python gld_backtest_runner.py                                      # Single run with defaults
+    python gld_backtest_runner.py --start 2010-01-01 --end 2026-02-05  # Custom dates
+    python gld_backtest_runner.py --csv gld_config.csv                 # Batch from CSV
 """
 
 import os
@@ -44,32 +45,31 @@ except ImportError:
 # ============================================
 
 @dataclass
-class PositionTrendBacktestConfig:
-    """Configuration for a Position Trend Following backtest run."""
+class GLDBacktestConfig:
+    """Configuration for a GLD Position Trend Following backtest run."""
     session_id: str
     start_date: str
     end_date: str
     initial_cash: float = 100000.0
     
     # Strategy identifier
-    algorithm_name: str = "TQQQPositionTrendAlgorithm"
+    algorithm_name: str = "GLDPositionTrendAlgorithm"
     
     # ==========================================
-    # POSITION TREND PARAMETERS
+    # GLD TREND PARAMETERS
     # ==========================================
     
-    # SMA periods for QQQ regime detection
-    sma_fast: int = 50              # Fast SMA on QQQ
-    sma_slow: int = 200             # Slow SMA on QQQ
+    # SMA periods for GLD trend detection
+    sma_fast: int = 50              # Fast SMA on GLD
+    sma_slow: int = 200             # Slow SMA on GLD
     
     # Allocation per regime
-    bull_allocation: float = 0.90    # % in TQQQ during bull
-    bear_allocation: float = 0.50    # % in SQQQ during bear
+    bull_allocation: float = 0.90    # % in GLD during uptrend
+    bear_allocation: float = 0.0     # 0% = cash during downtrend
     
     # Cash zone behavior
     use_cash_zone: bool = True       # Go flat when regime is mixed
-    mixed_allocation: float = 0.30   # Allocation if trading mixed zone
-    mixed_instrument: str = "tqqq"   # Which instrument in mixed zone
+    mixed_allocation: float = 0.0    # 0% in mixed zone
     
     # Rebalance
     rebalance_threshold: float = 0.05  # 5% drift before rebalance
@@ -80,14 +80,21 @@ class PositionTrendBacktestConfig:
     # Confirmation
     confirmation_days: int = 1        # Days to confirm regime change
     
+    # Signal mode: 'price' = price vs SMAs, 'crossover' = SMA fast vs SMA slow
+    # 'breakout' = buy N-day high in uptrend, exit on death cross or N-day low
+    signal_mode: str = "price"        # 'price', 'crossover', or 'breakout'
+    
+    # Breakout lookback (only used in breakout mode)
+    breakout_lookback: int = 20       # N-day high/low channel
+    
     # Data resolution
     data_resolution: str = "minute"   # "daily" or "minute"
 
 
-class PositionTrendBacktestRunner:
+class GLDBacktestRunner:
     """
-    Runs LEAN backtests for the Position Trend Following strategy.
-    Independent from all other strategy runners.
+    Runs LEAN backtests for the GLD Position Trend Following strategy.
+    Independent from the TQQQ strategy runner.
     """
     
     def __init__(self, connection_string: str | None = None):
@@ -104,12 +111,12 @@ class PositionTrendBacktestRunner:
         self.conn: Optional[Any] = None
     
     def _sync_algorithm_files(self) -> None:
-        """Sync Position Trend algorithm to LEAN folder"""
+        """Sync GLD algorithm to LEAN folder"""
         source_algo_dir = self.base_path / "algorithms"
         target_algo_dir = self.lean_path / "Algorithm.Python"
         
         algo_files = [
-            "TQQQPositionTrendAlgorithm.py",
+            "GLDPositionTrendAlgorithm.py",
             "sql_connector.py",
         ]
         
@@ -140,7 +147,7 @@ class PositionTrendBacktestRunner:
             print(f"[DB] Connection failed: {e}")
             return False
     
-    def generate_session_id(self, prefix: str = "POSTREND") -> str:
+    def generate_session_id(self, prefix: str = "GLDTREND") -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         short_uuid = str(uuid.uuid4())[:8]
         return f"{prefix}_{timestamp}_{short_uuid}"
@@ -149,8 +156,8 @@ class PositionTrendBacktestRunner:
     # LEAN CONFIG GENERATION
     # ============================================
     
-    def create_lean_config(self, config: PositionTrendBacktestConfig) -> Path:
-        """Create LEAN config file for Position Trend backtest."""
+    def create_lean_config(self, config: GLDBacktestConfig) -> Path:
+        """Create LEAN config file for GLD backtest."""
         
         parameters = {
             "start-date": config.start_date,
@@ -168,7 +175,6 @@ class PositionTrendBacktestRunner:
             # Cash zone
             "use-cash-zone": str(config.use_cash_zone).lower(),
             "mixed-allocation": str(config.mixed_allocation),
-            "mixed-instrument": config.mixed_instrument,
             
             # Rebalance
             "rebalance-threshold": str(config.rebalance_threshold),
@@ -178,6 +184,12 @@ class PositionTrendBacktestRunner:
             
             # Confirmation
             "confirmation-days": str(config.confirmation_days),
+            
+            # Signal mode
+            "signal-mode": config.signal_mode,
+            
+            # Breakout lookback
+            "breakout-lookback": str(config.breakout_lookback),
             
             # Data resolution
             "data-resolution": config.data_resolution,
@@ -231,7 +243,7 @@ class PositionTrendBacktestRunner:
             print("[LEAN] Launcher not found! Build LEAN first with build_lean.ps1")
             return {"success": False, "error": "LEAN launcher not found"}
         
-        print(f"[LEAN] Running Position Trend backtest with config: {config_path}")
+        print(f"[LEAN] Running GLD Trend backtest with config: {config_path}")
         
         try:
             env = os.environ.copy()
@@ -268,7 +280,7 @@ class PositionTrendBacktestRunner:
             results_dir = Path(config_path).parent
             with open(config_path, 'r') as f:
                 cfg = json.load(f)
-            algo_name = cfg.get('algorithm-type-name', 'TQQQPositionTrendAlgorithm')
+            algo_name = cfg.get('algorithm-type-name', 'GLDPositionTrendAlgorithm')
             result_file = results_dir / f"{algo_name}.json"
             log_file = results_dir / f"{algo_name}-log.txt"
             max_wait_time = 1800
@@ -312,7 +324,7 @@ class PositionTrendBacktestRunner:
             backtest_completed = result_file.exists() and result_file.stat().st_size > 1000
             
             if backtest_completed:
-                print("[LEAN] Position Trend backtest completed successfully")
+                print("[LEAN] GLD Trend backtest completed successfully")
                 return {"success": True}
             elif waited >= max_wait_time:
                 print("[LEAN] Timeout!")
@@ -476,7 +488,7 @@ class PositionTrendBacktestRunner:
                     INSERT INTO Sessions (
                         SessionId, SessionType, StrategyId, StartTime, EndTime, Status,
                         TotalReturn, SharpeRatio, MaxDrawdown, TotalTrades, WinRate, ParametersJson
-                    ) VALUES (?, 'BACKTEST', 'POSITION_TREND', GETUTCDATE(), GETUTCDATE(), 'COMPLETED',
+                    ) VALUES (?, 'BACKTEST', 'GLD_POSITION_TREND', GETUTCDATE(), GETUTCDATE(), 'COMPLETED',
                         ?, ?, ?, ?, ?, ?)
                 """, (
                     session_id, stats.get("total_return", 0), stats.get("sharpe_ratio", 0),
@@ -492,9 +504,7 @@ class PositionTrendBacktestRunner:
             max_dd = stats.get("max_drawdown", 0)
             total_trades = stats.get("total_trades", 0)
             
-            # Expectancy = WR * AvgWin - (1-WR) * AvgLoss
             expectancy = (win_rate * avg_win) - ((1 - win_rate) * avg_loss) if total_trades > 0 else 0
-            # ExpectancyRatio = Expectancy / AvgLoss (how many R per trade)
             expectancy_ratio = expectancy / avg_loss if avg_loss > 0 else 0
             
             # Performance Grade based on Sharpe
@@ -511,7 +521,6 @@ class PositionTrendBacktestRunner:
             else:
                 grade = 'D'
             
-            # IsSuccessful: Sharpe >= 1.0, WR >= 40%, DD <= 20%
             is_successful = 1 if (sharpe >= 1.0 and win_rate >= 0.4 and abs(max_dd) <= 0.20) else 0
             
             # Auto-generate Notes
@@ -536,7 +545,7 @@ class PositionTrendBacktestRunner:
                     AverageWin, AverageLoss, LargestWin, LargestLoss, CalmarRatio,
                     Expectancy, ExpectancyRatio, PerformanceGrade, IsSuccessful,
                     ExecutionTimeSeconds, Notes, OptimizationRunId, ParametersJson
-                ) VALUES (?, 'POSITION_TREND', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, 'GLD_POSITION_TREND', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 session_id,
                 parsed_results.get("start_date"), parsed_results.get("end_date"),
@@ -556,14 +565,14 @@ class PositionTrendBacktestRunner:
             ))
             
             self.conn.commit()
-            print(f"[SQL] Stored Position Trend results: {session_id}")
+            print(f"[SQL] Stored GLD Trend results: {session_id}")
             return True
         except Exception as e:
             print(f"[SQL] Error: {e}")
             self.conn.rollback()
             return False
     
-    def save_results_to_file(self, parsed_results: Dict, config: PositionTrendBacktestConfig):
+    def save_results_to_file(self, parsed_results: Dict, config: GLDBacktestConfig):
         results_dir = self.results_path / config.session_id
         output_file = results_dir / "parsed_results.json"
         output = {
@@ -581,13 +590,13 @@ class PositionTrendBacktestRunner:
     
     def run_backtest(
         self,
-        start_date: str = "2018-06-01",
-        end_date: str = "2026-01-14",
+        start_date: str = "2010-01-01",
+        end_date: str = "2026-02-05",
         initial_cash: float = 100000.0,
         session_id: str = None,
         **params
     ) -> Dict[str, Any]:
-        """Run a single Position Trend Following backtest."""
+        """Run a single GLD Position Trend Following backtest."""
         if session_id is None:
             session_id = self.generate_session_id()
         
@@ -597,14 +606,14 @@ class PositionTrendBacktestRunner:
         optimization_run_id = params.pop('_optimization_run_id', None)
         
         print(f"\n{'='*60}")
-        print(f"[POSITION TREND BACKTEST] Session: {session_id}")
-        print(f"[POSITION TREND BACKTEST] Period: {start_date} to {end_date}")
-        print(f"[POSITION TREND BACKTEST] Cash: ${initial_cash:,.2f}")
+        print(f"[GLD TREND BACKTEST] Session: {session_id}")
+        print(f"[GLD TREND BACKTEST] Period: {start_date} to {end_date}")
+        print(f"[GLD TREND BACKTEST] Cash: ${initial_cash:,.2f}")
         if params:
-            print(f"[POSITION TREND BACKTEST] Params: {params}")
+            print(f"[GLD TREND BACKTEST] Params: {params}")
         print(f"{'='*60}\n")
         
-        config = PositionTrendBacktestConfig(
+        config = GLDBacktestConfig(
             session_id=session_id,
             start_date=start_date,
             end_date=end_date,
@@ -631,7 +640,7 @@ class PositionTrendBacktestRunner:
         self.save_results_to_file(parsed_results, config)
         
         total_elapsed = parsed_results["execution_time_seconds"]
-        print(f"[COMPLETE] Position Trend backtest done in {total_elapsed:.1f}s | Session: {session_id}")
+        print(f"[COMPLETE] GLD Trend backtest done in {total_elapsed:.1f}s | Session: {session_id}")
         
         return {
             "success": True,
@@ -644,39 +653,42 @@ class PositionTrendBacktestRunner:
 # CSV-DRIVEN BATCH OPTIMIZER
 # ============================================
 
-class PositionTrendParameterOptimizer:
+class GLDParameterOptimizer:
     """
-    CSV-driven batch optimizer for Position Trend Following parameters.
+    CSV-driven batch optimizer for GLD Position Trend Following parameters.
     Resume-capable with hash-based deduplication.
     """
     
     PARAM_COLUMNS = [
         'sma_fast', 'sma_slow',
         'bull_allocation', 'bear_allocation',
-        'use_cash_zone', 'mixed_allocation', 'mixed_instrument',
+        'use_cash_zone', 'mixed_allocation',
         'rebalance_threshold',
         'max_drawdown_exit',
         'confirmation_days',
+        'signal_mode',
+        'breakout_lookback',
         'data_resolution',
     ]
     
     DEFAULTS = {
-        'algorithm_name': 'TQQQPositionTrendAlgorithm',
+        'algorithm_name': 'GLDPositionTrendAlgorithm',
         'sma_fast': 50,
         'sma_slow': 200,
         'bull_allocation': 0.90,
-        'bear_allocation': 0.50,
+        'bear_allocation': 0.0,
         'use_cash_zone': True,
-        'mixed_allocation': 0.30,
-        'mixed_instrument': 'tqqq',
+        'mixed_allocation': 0.0,
         'rebalance_threshold': 0.05,
         'max_drawdown_exit': 0.0,
         'confirmation_days': 1,
+        'signal_mode': 'price',
+        'breakout_lookback': 20,
         'data_resolution': 'minute',
     }
     
     def __init__(self, connection_string: str = None):
-        self.runner = PositionTrendBacktestRunner(connection_string)
+        self.runner = GLDBacktestRunner(connection_string)
         self.base_path = Path(__file__).parent
         self._completed_hashes: set = set()
     
@@ -710,16 +722,14 @@ class PositionTrendParameterOptimizer:
                 elif col in self.DEFAULTS:
                     params[col] = self.DEFAULTS[col]
             
-            params['algorithm_name'] = 'TQQQPositionTrendAlgorithm'
-            # Priority: CLI arg > CSV value > hardcoded default
+            params['algorithm_name'] = 'GLDPositionTrendAlgorithm'
             csv_start = row.get('start_date', None)
             csv_end = row.get('end_date', None)
             csv_cash = row.get('initial_cash', None)
-            params['start_date'] = start_date or (csv_start if pd.notna(csv_start) else None) or "2018-06-01"
-            params['end_date'] = end_date or (csv_end if pd.notna(csv_end) else None) or "2026-01-14"
+            params['start_date'] = start_date or (csv_start if pd.notna(csv_start) else None) or "2010-01-01"
+            params['end_date'] = end_date or (csv_end if pd.notna(csv_end) else None) or "2026-02-05"
             params['initial_cash'] = initial_cash or (csv_cash if pd.notna(csv_cash) else None) or 100000.0
             
-            # Clean NaN
             params = {k: v for k, v in params.items() if not (isinstance(v, float) and v != v)}
             params['_hash'] = self.generate_hash(params)
             params['_row_index'] = idx + 1
@@ -745,7 +755,7 @@ class PositionTrendParameterOptimizer:
         results_dir = self.base_path / "results"
         if results_dir.exists():
             for session_dir in results_dir.iterdir():
-                if session_dir.is_dir() and session_dir.name.startswith("POSTREND_"):
+                if session_dir.is_dir() and session_dir.name.startswith("GLDTREND_"):
                     parsed_file = session_dir / "parsed_results.json"
                     if parsed_file.exists():
                         try:
@@ -760,7 +770,7 @@ class PositionTrendParameterOptimizer:
     
     def run_batch_optimization(
         self, combinations: List[Dict[str, Any]],
-        results_csv: str = "postrend_optimization_results.csv",
+        results_csv: str = "gld_optimization_results.csv",
         source_csv: str = None
     ) -> List[Dict[str, Any]]:
         """Run all combinations sequentially with resume support."""
@@ -768,11 +778,9 @@ class PositionTrendParameterOptimizer:
         self._completed_hashes = self._load_completed_hashes()
         print(f"[BATCH] {len(self._completed_hashes)} previously completed runs found")
         
-        # Generate a unique optimization run ID for this batch
-        optimization_run_id = f"OPT_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        optimization_run_id = f"GLD_OPT_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         print(f"[BATCH] Optimization Run ID: {optimization_run_id}")
         
-        # Register optimization run in database
         self._insert_optimization_run(optimization_run_id, len(combinations), source_csv)
         
         results = []
@@ -788,14 +796,13 @@ class PositionTrendParameterOptimizer:
             
             print(f"\n[BATCH] Running {i}/{total} (hash: {combo_hash})")
             
-            # Extract run params
             run_params = {k: v for k, v in combo.items() if not k.startswith('_') and k not in ('start_date', 'end_date', 'initial_cash')}
             run_params['_optimization_run_id'] = optimization_run_id
             
             try:
                 result = self.runner.run_backtest(
-                    start_date=combo.get('start_date', '2018-06-01'),
-                    end_date=combo.get('end_date', '2026-01-14'),
+                    start_date=combo.get('start_date', '2010-01-01'),
+                    end_date=combo.get('end_date', '2026-02-05'),
                     initial_cash=combo.get('initial_cash', 100000.0),
                     **run_params
                 )
@@ -808,22 +815,17 @@ class PositionTrendParameterOptimizer:
                     self._completed_hashes.add(combo_hash)
                     completed_count += 1
                     
-                    # Append to CSV immediately
                     self._append_result_to_csv(result, results_csv)
-                    
-                    # Update progress in OptimizationRuns
                     self._update_optimization_run(optimization_run_id, completed_count, 'RUNNING')
                     
             except Exception as e:
                 print(f"[ERROR] Combination {i} failed: {e}")
         
-        # Mark optimization run as complete
         self._update_optimization_run(optimization_run_id, completed_count, 'COMPLETED')
         print(f"\n[BATCH] Complete: {len(results)}/{total} successful")
         return results
     
     def _insert_optimization_run(self, run_id: str, total_combinations: int, source_file: str = None):
-        """Insert a new row into OptimizationRuns table."""
         self.runner.connect_db()
         if not self.runner.conn:
             return
@@ -839,7 +841,6 @@ class PositionTrendParameterOptimizer:
             print(f"[SQL] Error inserting optimization run: {e}")
     
     def _update_optimization_run(self, run_id: str, completed_count: int, status: str):
-        """Update progress/status in OptimizationRuns table."""
         if not self.runner.conn:
             return
         try:
@@ -855,7 +856,6 @@ class PositionTrendParameterOptimizer:
             print(f"[SQL] Error updating optimization run: {e}")
     
     def _append_result_to_csv(self, result: Dict, csv_path: str):
-        """Append a single result to the running CSV."""
         stats = result.get("statistics", {})
         params = result.get("parameters", {})
         
@@ -895,46 +895,48 @@ class PositionTrendParameterOptimizer:
 # ============================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Position Trend Following Backtest Runner")
-    parser.add_argument("--start", default=None, help="Start date (YYYY-MM-DD, default: 2018-06-01)")
-    parser.add_argument("--end", default=None, help="End date (YYYY-MM-DD, default: 2026-01-14)")
+    parser = argparse.ArgumentParser(description="GLD Position Trend Following Backtest Runner")
+    parser.add_argument("--start", default=None, help="Start date (YYYY-MM-DD, default: 2010-01-01)")
+    parser.add_argument("--end", default=None, help="End date (YYYY-MM-DD, default: 2026-02-05)")
     parser.add_argument("--cash", type=float, default=100000, help="Initial cash")
     parser.add_argument("--session-id", default=None, help="Session ID")
     
-    # Position Trend parameters
+    # GLD Trend parameters
     parser.add_argument("--sma-fast", type=int, default=50)
     parser.add_argument("--sma-slow", type=int, default=200)
     parser.add_argument("--bull-allocation", type=float, default=0.90)
-    parser.add_argument("--bear-allocation", type=float, default=0.50)
+    parser.add_argument("--bear-allocation", type=float, default=0.0)
     parser.add_argument("--use-cash-zone", action="store_true", default=True)
     parser.add_argument("--no-cash-zone", dest="use_cash_zone", action="store_false")
-    parser.add_argument("--mixed-allocation", type=float, default=0.30)
-    parser.add_argument("--mixed-instrument", default="tqqq")
+    parser.add_argument("--mixed-allocation", type=float, default=0.0)
     parser.add_argument("--rebalance-threshold", type=float, default=0.05)
     parser.add_argument("--max-drawdown-exit", type=float, default=0.0)
     parser.add_argument("--confirmation-days", type=int, default=1)
-    parser.add_argument("--data-resolution", default="minute", choices=["daily", "minute"],
-                        help="Data resolution: 'daily' for pre-2018, 'minute' for full fidelity")
+    parser.add_argument("--signal-mode", default="price", choices=["price", "crossover", "breakout"],
+                        help="Signal mode: 'price' = price vs SMAs, 'crossover' = SMA fast vs SMA slow, 'breakout' = N-day high/low in uptrend")
+    parser.add_argument("--breakout-lookback", type=int, default=20,
+                        help="N-day high/low lookback for breakout mode (default: 20)")
+    parser.add_argument("--data-resolution", default="minute", choices=["daily", "minute"])
     
     # Batch mode
     parser.add_argument("--csv", default=None, help="CSV file for batch optimization")
-    parser.add_argument("--results-csv", default="postrend_optimization_results.csv", help="Output results CSV")
+    parser.add_argument("--results-csv", default="gld_optimization_results.csv", help="Output results CSV")
     
     args = parser.parse_args()
     
     if args.csv:
         # Batch mode
-        optimizer = PositionTrendParameterOptimizer()
+        optimizer = GLDParameterOptimizer()
         combinations = optimizer.load_combinations_from_csv(
             args.csv, start_date=args.start, end_date=args.end, initial_cash=args.cash
         )
         optimizer.run_batch_optimization(combinations, args.results_csv, source_csv=args.csv)
     else:
         # Single run
-        runner = PositionTrendBacktestRunner()
+        runner = GLDBacktestRunner()
         result = runner.run_backtest(
-            start_date=args.start or "2018-06-01",
-            end_date=args.end or "2026-01-14",
+            start_date=args.start or "2010-01-01",
+            end_date=args.end or "2026-02-05",
             initial_cash=args.cash,
             session_id=args.session_id,
             sma_fast=args.sma_fast,
@@ -943,17 +945,18 @@ def main():
             bear_allocation=args.bear_allocation,
             use_cash_zone=args.use_cash_zone,
             mixed_allocation=args.mixed_allocation,
-            mixed_instrument=args.mixed_instrument,
             rebalance_threshold=args.rebalance_threshold,
             max_drawdown_exit=args.max_drawdown_exit,
             confirmation_days=args.confirmation_days,
+            signal_mode=args.signal_mode,
+            breakout_lookback=args.breakout_lookback,
             data_resolution=args.data_resolution,
         )
         
         if result.get("success"):
             stats = result.get("statistics", {})
             print(f"\n{'='*60}")
-            print(f"POSITION TREND BACKTEST COMPLETE")
+            print(f"GLD TREND BACKTEST COMPLETE")
             print(f"{'='*60}")
             print(f"Session: {result['session_id']}")
             print(f"Return:  {stats.get('total_return', 0)*100:.2f}%")

@@ -8,15 +8,23 @@
 USE TradingDB;
 GO
 
--- Variables for the latest backtest
+-- Variables for backtest comparison (set both to compare, or just @backtestid for single)
 DECLARE @backtestid VARCHAR(100);
 DECLARE @outcomeid BIGINT;
 DECLARE @strategyid VARCHAR(50);
-		
--- Get latest backtest
-SET @outcomeid = '12984'--(SELECT TOP 1 OutcomeId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
-SET @backtestid = 'POSTREND_20260207_184652_2d0df58a'--(SELECT TOP 1 BacktestId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
-SET @strategyid = 'POSITION_TREND'--(SELECT TOP 1 StrategyId FROM BacktestOutcomes ORDER BY OutcomeId DESC);
+
+-- Backtest A (Databento data)
+DECLARE @outcomeid_a BIGINT = 13266;
+DECLARE @backtestid_a VARCHAR(100) = 'POSTREND_20260209_114147_2a63546f';
+
+-- Backtest B (Alpha Vantage data)
+DECLARE @outcomeid_b BIGINT = 13269;
+DECLARE @backtestid_b VARCHAR(100) = 'POSTREND_20260209_214904_8a35fde5';
+
+-- Default to Backtest B for single-backtest sections
+SET @outcomeid = @outcomeid_b;
+SET @backtestid = @backtestid_b;
+SET @strategyid = 'POSITION_TREND';
 		
 PRINT '============================================================================';
 PRINT 'LATEST BACKTEST MONITORING REPORT';
@@ -393,6 +401,149 @@ SELECT TOP 20 *
 FROM WebhookEvents 
 WHERE SessionId = @backtestid
 ORDER BY EventId DESC;
+
+PRINT '';
+PRINT '============================================================================';
+PRINT '>>> 19. HEAD-TO-HEAD COMPARISON: Databento vs Alpha Vantage';
+PRINT '============================================================================';
+
+-- 19a. Summary side-by-side
+SELECT 
+    a.BacktestId AS [Backtest_A (Databento)],
+    b.BacktestId AS [Backtest_B (AlphaVantage)],
+    a.StartDate AS A_Start, b.StartDate AS B_Start,
+    a.EndDate AS A_End, b.EndDate AS B_End,
+    a.TradingDays AS A_Days, b.TradingDays AS B_Days,
+    CAST(a.TotalReturn * 100 AS DECIMAL(10,2)) AS A_ReturnPct,
+    CAST(b.TotalReturn * 100 AS DECIMAL(10,2)) AS B_ReturnPct,
+    CAST((b.TotalReturn - a.TotalReturn) * 100 AS DECIMAL(10,2)) AS Delta_ReturnPct,
+    CAST(a.SharpeRatio AS DECIMAL(10,3)) AS A_Sharpe,
+    CAST(b.SharpeRatio AS DECIMAL(10,3)) AS B_Sharpe,
+    CAST(a.SortinoRatio AS DECIMAL(10,3)) AS A_Sortino,
+    CAST(b.SortinoRatio AS DECIMAL(10,3)) AS B_Sortino,
+    CAST(a.MaxDrawdown * 100 AS DECIMAL(10,2)) AS A_MaxDDPct,
+    CAST(b.MaxDrawdown * 100 AS DECIMAL(10,2)) AS B_MaxDDPct,
+    a.TotalTrades AS A_Trades, b.TotalTrades AS B_Trades,
+    a.WinningTrades AS A_Wins, b.WinningTrades AS B_Wins,
+    CAST(a.WinRate * 100 AS DECIMAL(10,2)) AS A_WinRatePct,
+    CAST(b.WinRate * 100 AS DECIMAL(10,2)) AS B_WinRatePct,
+    CAST(a.ProfitFactor AS DECIMAL(10,2)) AS A_ProfitFactor,
+    CAST(b.ProfitFactor AS DECIMAL(10,2)) AS B_ProfitFactor,
+    CAST(a.TotalProfit AS DECIMAL(18,2)) AS A_TotalProfit,
+    CAST(b.TotalProfit AS DECIMAL(18,2)) AS B_TotalProfit,
+    CAST(a.TotalLoss AS DECIMAL(18,2)) AS A_TotalLoss,
+    CAST(b.TotalLoss AS DECIMAL(18,2)) AS B_TotalLoss,
+    a.PerformanceGrade AS A_Grade, b.PerformanceGrade AS B_Grade
+FROM BacktestOutcomes a
+CROSS JOIN BacktestOutcomes b
+WHERE a.OutcomeId = @outcomeid_a AND b.OutcomeId = @outcomeid_b;
+
+-- 19b. Trade count by symbol comparison
+PRINT '';
+PRINT '>>> 19b. TRADES BY SYMBOL COMPARISON';
+SELECT 
+    COALESCE(a.Symbol, b.Symbol) AS Symbol,
+    ISNULL(a.A_Trades, 0) AS A_Trades,
+    ISNULL(b.B_Trades, 0) AS B_Trades,
+    ISNULL(a.A_Trades, 0) - ISNULL(b.B_Trades, 0) AS Delta_Trades,
+    ISNULL(a.A_PnL, 0) AS A_PnL,
+    ISNULL(b.B_PnL, 0) AS B_PnL,
+    CAST(ISNULL(b.B_PnL, 0) - ISNULL(a.A_PnL, 0) AS DECIMAL(18,2)) AS Delta_PnL,
+    ISNULL(a.A_WinRate, 0) AS A_WinRatePct,
+    ISNULL(b.B_WinRate, 0) AS B_WinRatePct
+FROM (
+    SELECT Symbol,
+        COUNT(*) AS A_Trades,
+        CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS A_PnL,
+        CAST(SUM(CASE WHEN GrossPnL > 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS A_WinRate
+    FROM Trades WHERE SessionId = @backtestid_a GROUP BY Symbol
+) a
+FULL OUTER JOIN (
+    SELECT Symbol,
+        COUNT(*) AS B_Trades,
+        CAST(SUM(GrossPnL) AS DECIMAL(18,2)) AS B_PnL,
+        CAST(SUM(CASE WHEN GrossPnL > 0 THEN 1.0 ELSE 0 END) / NULLIF(COUNT(*),0) * 100 AS DECIMAL(10,2)) AS B_WinRate
+    FROM Trades WHERE SessionId = @backtestid_b GROUP BY Symbol
+) b ON a.Symbol = b.Symbol;
+
+-- 19c. Trade count by exit reason comparison
+PRINT '';
+PRINT '>>> 19c. EXIT REASON COMPARISON';
+SELECT 
+    COALESCE(a.ExitReason, b.ExitReason) AS ExitReason,
+    ISNULL(a.A_Trades, 0) AS A_Trades,
+    ISNULL(b.B_Trades, 0) AS B_Trades,
+    CAST(ISNULL(a.A_PnL, 0) AS DECIMAL(18,2)) AS A_PnL,
+    CAST(ISNULL(b.B_PnL, 0) AS DECIMAL(18,2)) AS B_PnL
+FROM (
+    SELECT ExitReason, COUNT(*) AS A_Trades, SUM(GrossPnL) AS A_PnL
+    FROM Trades WHERE SessionId = @backtestid_a GROUP BY ExitReason
+) a
+FULL OUTER JOIN (
+    SELECT ExitReason, COUNT(*) AS B_Trades, SUM(GrossPnL) AS B_PnL
+    FROM Trades WHERE SessionId = @backtestid_b GROUP BY ExitReason
+) b ON a.ExitReason = b.ExitReason
+ORDER BY ISNULL(a.A_Trades, 0) + ISNULL(b.B_Trades, 0) DESC;
+
+-- 19d. Monthly P&L comparison
+PRINT '';
+PRINT '>>> 19d. MONTHLY P&L COMPARISON';
+SELECT 
+    COALESCE(a.Month, b.Month) AS YearMonth,
+    ISNULL(a.A_PnL, 0) AS A_MonthlyPnL,
+    ISNULL(b.B_PnL, 0) AS B_MonthlyPnL,
+    CAST(ISNULL(b.B_PnL, 0) - ISNULL(a.A_PnL, 0) AS DECIMAL(18,2)) AS Delta_PnL,
+    ISNULL(a.A_Trades, 0) AS A_Trades,
+    ISNULL(b.B_Trades, 0) AS B_Trades
+FROM (
+    SELECT FORMAT(Date, 'yyyy-MM') AS Month,
+        CAST(SUM(DailyPnL) AS DECIMAL(18,2)) AS A_PnL,
+        SUM(NumTrades) AS A_Trades
+    FROM DailyPerformance WHERE SessionId = @backtestid_a GROUP BY FORMAT(Date, 'yyyy-MM')
+) a
+FULL OUTER JOIN (
+    SELECT FORMAT(Date, 'yyyy-MM') AS Month,
+        CAST(SUM(DailyPnL) AS DECIMAL(18,2)) AS B_PnL,
+        SUM(NumTrades) AS B_Trades
+    FROM DailyPerformance WHERE SessionId = @backtestid_b GROUP BY FORMAT(Date, 'yyyy-MM')
+) b ON a.Month = b.Month
+ORDER BY COALESCE(a.Month, b.Month);
+
+-- 19e. Parameters comparison
+PRINT '';
+PRINT '>>> 19e. PARAMETERS COMPARISON';
+SELECT 
+    a.BacktestId AS [Backtest_A],
+    a.ParametersJson AS A_Parameters,
+    b.BacktestId AS [Backtest_B],
+    b.ParametersJson AS B_Parameters
+FROM BacktestOutcomes a
+CROSS JOIN BacktestOutcomes b
+WHERE a.OutcomeId = @outcomeid_a AND b.OutcomeId = @outcomeid_b;
+
+-- 19f. Cumulative equity curve comparison (aligned by date)
+PRINT '';
+PRINT '>>> 19f. EQUITY CURVE COMPARISON (Daily Cumulative P&L)';
+SELECT 
+    COALESCE(a.Date, b.Date) AS Date,
+    ISNULL(a.A_DailyPnL, 0) AS A_DailyPnL,
+    ISNULL(a.A_CumPnL, 0) AS A_CumPnL,
+    ISNULL(b.B_DailyPnL, 0) AS B_DailyPnL,
+    ISNULL(b.B_CumPnL, 0) AS B_CumPnL,
+    CAST(ISNULL(b.B_CumPnL, 0) - ISNULL(a.A_CumPnL, 0) AS DECIMAL(18,2)) AS CumPnL_Delta
+FROM (
+    SELECT Date,
+        CAST(DailyPnL AS DECIMAL(18,2)) AS A_DailyPnL,
+        CAST(SUM(DailyPnL) OVER (ORDER BY Date) AS DECIMAL(18,2)) AS A_CumPnL
+    FROM DailyPerformance WHERE SessionId = @backtestid_a
+) a
+FULL OUTER JOIN (
+    SELECT Date,
+        CAST(DailyPnL AS DECIMAL(18,2)) AS B_DailyPnL,
+        CAST(SUM(DailyPnL) OVER (ORDER BY Date) AS DECIMAL(18,2)) AS B_CumPnL
+    FROM DailyPerformance WHERE SessionId = @backtestid_b
+) b ON a.Date = b.Date
+ORDER BY COALESCE(a.Date, b.Date);
 
 PRINT '';
 PRINT '============================================================================';
